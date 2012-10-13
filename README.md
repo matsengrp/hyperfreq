@@ -28,18 +28,24 @@ Splitting sequences for HM free alignments
 
 If you want to write your own scripts, you can do so by importing the appropraite modules
 
-import hyperfreq
-from hyperfreq import HyperfreqAlignment
-from Bio import SeqIO
+    import hyperfreq
+    from hyperfreq import HyperfreqAlignment
+    from Bio import SeqIO
 
-seqs = SeqIO.parse('some_file.fasta', 'fasta')
-aln = hyperfreq.HyperfreqAlignment(seqs)
+    seqs = SeqIO.parse('some_file.fasta', 'fasta')
+    aln = hyperfreq.HyperfreqAlignment(seqs)
 
-aln.analyze_hypermuts()
+    aln.analyze_hypermuts()
 
-for seq in aln:
-    print seq.name, "hm status:", seq.hm_pos
+    for seq in aln:
+        print seq.name, "hm status:", seq.hm_pos
 
-print "Total positive:", [seq.hm_pos for seq in aln].sum()
+    print "Total positive:", [seq.hm_pos for seq in aln].sum()
 
+
+## Building
+
+Download and run
+
+    python setup.py install
 
