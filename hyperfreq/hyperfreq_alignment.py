@@ -128,6 +128,43 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
         return self
 
+    def write_analysis(self, gross_handle=None, gross_writer=None, by_seq_handle=None, by_seq_writer=None,
+            cluster=None, header=True):
+        """This method can be either used by itself or by the HyperfreqAlign.Set class instances to write for
+        many sets. As such, it is possible either to pass in a gross_handle file for csv writer, or a
+        csvwriter object which already has column names written to it."""
+        if not gross_writer:
+            gross_writer = csv.writer(gross_handle)
+
+        if not by_seq_writer:
+            by_seq_writer = csv.writer(by_seq_handle)
+
+        if header:
+            sorted_contexts = list(set(self.contexts))
+            sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
+            gross_writer.writerow(['cluster','column','context','count'])
+
+            by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
+                    'n_muts', 'n_controls', 'n_mut_ctxt', 'n_control_ctxt'] +
+                    [HyperfreqAlignment.trans_col_name(trans) for trans in HyperfreqAlignment.MUT_PATTERNS] +
+                    sorted_contexts)
+
+        for i in xrange(0, len(self.mut_indices)):
+            row = [cluster, self.mut_columns[i], self.mut_contexts[i], self.muts_per_site[i]]
+            gross_writer.writerow(row)
+
+        for seq in self:
+            row = [seq.name, cluster, seq.pvalue, seq.hm_pos, seq.n_muts, seq.n_controls, seq.n_mut_ctxt,
+                    seq.n_control_ctxt]
+            row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
+            def get_ctxt(c):
+                try:
+                    return seq.contexts[c]
+                except KeyError:
+                    return 0
+
+            row += [get_ctxt(ctxt) for ctxt in sorted_contexts]
+            by_seq_writer.writerow(row)
 
 
     class Set:
@@ -172,21 +209,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
             for cluster in self.cluster_alns:
                 aln = self.cluster_alns[cluster]
-                for i in xrange(0, len(aln.mut_indices)):
-                    row = [cluster, aln.mut_columns[i], aln.mut_contexts[i], aln.muts_per_site[i]]
-                    gross_writer.writerow(row)
-
-                for seq in aln:
-                    row = [seq.name, cluster, seq.pvalue, seq.hm_pos, seq.n_muts, seq.n_controls, seq.n_mut_ctxt,
-                            seq.n_control_ctxt]
-                    row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
-                    def get_ctxt(c):
-                        try:
-                            return seq.contexts[c]
-                        except KeyError:
-                            return 0
-
-                    row += [get_ctxt(ctxt) for ctxt in sorted_contexts]
-                    by_seq_writer.writerow(row)
+                aln.write_analysis(gross_writer=gross_writer, by_seq_writer=by_seq_writer, cluster=cluster,
+                        header=False)
 
 
