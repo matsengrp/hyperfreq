@@ -1,10 +1,10 @@
 # Hyperfreq
 
-Because, ya know, we like to get hyperfreqy...
-
 This software is python based hypermutation analysis tool.
 
-## CLI
+Because, ya know, we like to get hyperfreqy...
+
+## CLI usage
 
 Analysis
     
@@ -23,6 +23,9 @@ Splitting sequences for HM free alignments
     # Given a csv file with a column named `site` which specifies hypermutated columns, cut those columns out
     # for an alignment wiht hypermutated columns removed
     hyperfreq split alignment.fasta hypermutated_columns.csv --column site
+
+For more thorough usage, install and type `hyperfreq -h` or `hyperfreq <subcmd> -h`.
+
 
 ## Library usage
 
