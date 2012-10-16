@@ -8,7 +8,10 @@ setup(name='hyperfreq',
         description='Hypermutation evaluation software',
         author="Christopher Small",
         author_email="csmall@fhcrc.org",
-        scripts=['hyperfreq/scripts/hyperfreq'],
+        entry_points={
+            'console_scripts': [
+                'hyperfreq = hyperfreq.scripts.cli:main'
+            ]},
         packages=['hyperfreq'],
         requires=['sekhon', 'biopython'])
 
