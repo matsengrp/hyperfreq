@@ -31,6 +31,11 @@ def split(args):
 
 def analyze(args):
     seq_records = SeqIO.to_dict(SeqIO.parse(args.alignment, 'fasta'))
+    if args.reference_sequences:
+        reference_sequences = SeqIO.to_dict(SeqIO.parse(args.reference_sequences, 'fasta'))
+    else:
+        reference_sequences = None
+
 
     fn_base = path.join(args.out_dir, args.prefix)
     gross_handle = open(fn_base + '.gross.csv', 'w')
@@ -38,8 +43,9 @@ def analyze(args):
 
     # This lets the cluster map be aptional, so that this script can be used
     # for naive hm filtering/analysis
-    cluster_map = load_cluster_map(args.cluster_map, cluster_col='cluster_id') if args.cluster_map else None
-    alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters)
+    cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
+    alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters,
+            reference_sequences=reference_sequences)
     alignments.analyze_hypermuts(args.consensus_threshold, control_trans=args.control_trans,
             pvalue_cutoff=0.05, prob_diff=args.prob_diff)
 
@@ -80,10 +86,10 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--control-trans', default=('C', 'T'), type=tuple, help="Format: 'CT' for C -> T")
     analyze_args.add_argument('--prob-diff', default=0.0, type=float,
             help="Value of X in Sekhon Fisher Test of P1 - P2 > X")
-    #parser.add_argument('--reference-sequences', type=argparse.FileType('r'),
-            #help="""If specified, use the reference sequences in this file for comparison instead of consensus
-            #sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
-            #the first sequence in the file will be used for all sequences passed in the alignment""")
+    analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
+            help="""If specified, use the reference sequences in this file for comparison instead of consensus
+            sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
+            ensure that there is a reference_sequence named 'all' in your reference-sequences alignment.""")
     analyze_args.set_defaults(prefix='hyperfreq_analysis')
     analyze_args.set_defaults(func=analyze)
 

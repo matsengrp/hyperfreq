@@ -14,7 +14,7 @@ Analysis
     # Instead, compare each sequence to the consensus for a cluster specified in a clusters file
     hyperfreq analyze alignment.fasta --clusters clusters.csv
 
-    # SOON! Specify the reference sequence(s) which you want each sequence to be compared to
+    # Specify the reference sequence(s) which you want each sequence to be compared to
     hyperfreq analyze alignment.fasta --reference-sequences ref_seqs.fasta
 
     
@@ -23,6 +23,7 @@ Splitting sequences for HM free alignments
     # Given a csv file with a column named `site` which specifies hypermutated columns, cut those columns out
     # for an alignment wiht hypermutated columns removed
     hyperfreq split alignment.fasta hypermutated_columns.csv --column site
+
 
 For more thorough usage, install and type `hyperfreq -h` or `hyperfreq <subcmd> -h`.
 
