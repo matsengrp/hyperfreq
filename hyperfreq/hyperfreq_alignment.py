@@ -43,10 +43,15 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     def __init__(self, *args, **kwargs):
         """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
-        lets one specify a reference sequence for comparison istead of a consensus."""
+        lets one specify a reference sequence (Bio.Seq type) for comparison istead of a consensus."""
         #import pdb; pdb.set_trace()
-        reference_sequence = kwargs['reference_sequence']
-        del kwargs['reference_sequence']
+        try:
+            reference_sequence = kwargs['reference_sequence']
+            del kwargs['reference_sequence']
+
+        except KeyError:
+            reference_sequence = None
+
         super(HyperfreqAlignment, self).__init__(*args, **kwargs)
         self.reference_sequence = reference_sequence.seq if reference_sequence else None
 
@@ -139,7 +144,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         return self
 
     def write_analysis(self, gross_handle=None, gross_writer=None, by_seq_handle=None, by_seq_writer=None,
-            cluster=None, header=True):
+            cluster=None, header=True, contexts=None):
         """This method can be either used by itself or by the HyperfreqAlign.Set class instances to write for
         many sets. As such, it is possible either to pass in a gross_handle file for csv writer, or a
         csvwriter object which already has column names written to it."""
@@ -158,6 +163,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     'n_muts', 'n_controls', 'n_mut_ctxt', 'n_control_ctxt'] +
                     [HyperfreqAlignment.trans_col_name(trans) for trans in HyperfreqAlignment.MUT_PATTERNS] +
                     sorted_contexts)
+        else:
+            sorted_contexts = contexts
 
         for i in xrange(0, len(self.mut_indices)):
             row = [cluster, self.mut_columns[i], self.mut_contexts[i], self.muts_per_site[i]]
@@ -228,6 +235,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             for cluster in self.cluster_alns:
                 aln = self.cluster_alns[cluster]
                 aln.write_analysis(gross_writer=gross_writer, by_seq_writer=by_seq_writer, cluster=cluster,
-                        header=False)
+                        header=False, contexts=sorted_contexts)
 
 
