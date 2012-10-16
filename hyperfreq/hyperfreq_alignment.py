@@ -1,5 +1,6 @@
 from Bio import Align
 from Bio.Align import AlignInfo
+import warnings
 import sekhon
 import csv
 
@@ -40,41 +41,50 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 self[:,i].count(mut_residue) >= trans_threshold]
 
 
+    def __init__(self, *args, **kwargs):
+        """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
+        lets one specify a reference sequence for comparison istead of a consensus."""
+        #import pdb; pdb.set_trace()
+        reference_sequence = kwargs['reference_sequence']
+        del kwargs['reference_sequence']
+        super(HyperfreqAlignment, self).__init__(*args, **kwargs)
+        self.reference_sequence = reference_sequence.seq if reference_sequence else None
+
+
     def analyze_hypermuts(self, consensus_threshold=0.5, mut_trans=('G','A'), control_trans=('C', 'T'),
             pvalue_cutoff=0.05, prob_diff=0.0):
         """This lovely bunch of coconuts does all of the grunt work, running through the alignment to find
         hypermutation on a gross and by_seq basis.
         """
-
         aln_info = AlignInfo.SummaryInfo(self)
         self.mut_trans, self.control_trans = mut_trans, control_trans
-        consensus = aln_info.dumb_consensus(threshold=consensus_threshold)
+        ref_seq = self.reference_sequence if self.reference_sequence else aln_info.dumb_consensus(threshold=consensus_threshold)
 
-        def findall(consensus, residue):
-            return [i for i in range(0, len(consensus)) if consensus[i] == residue]
+        def findall(ref_seq, residue):
+            return [i for i in range(0, len(ref_seq)) if ref_seq[i] == residue]
 
         def context(i):
             try:
-                return str(consensus[i:i+2])
+                return str(ref_seq[i:i+2])
             except IndexError:
-                return str(consensus[i:i+1])
+                return str(ref_seq[i:i+1])
 
-        consensus_indices = {}
+        ref_seq_indices = {}
         for residue in HyperfreqAlignment.RESIDUES:
-            consensus_indices[residue] = findall(consensus, residue)
+            ref_seq_indices[residue] = findall(ref_seq, residue)
 
         for seq in self:
             seq.mut_indices = {}
-            for cons_res in consensus_indices.keys():
+            for cons_res in ref_seq_indices.keys():
                 for seq_res in HyperfreqAlignment.RESIDUES:
-                    seq.mut_indices[(cons_res, seq_res)] = [i for i in consensus_indices[cons_res] if
+                    seq.mut_indices[(cons_res, seq_res)] = [i for i in ref_seq_indices[cons_res] if
                             seq[i] == seq_res]
 
             seq.n_muts = len(seq.mut_indices[mut_trans])
             seq.n_controls = len(seq.mut_indices[control_trans])
 
-            seq.n_mut_ctxt = len(consensus_indices[mut_trans[0]])
-            seq.n_control_ctxt = len(consensus_indices[control_trans[0]])
+            seq.n_mut_ctxt = len(ref_seq_indices[mut_trans[0]])
+            seq.n_control_ctxt = len(ref_seq_indices[control_trans[0]])
 
             seq.pvalue = 1.0 - sekhon.test(
                 seq.n_muts, seq.n_mut_ctxt - seq.n_muts,
@@ -171,14 +181,22 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         """This class organizes the logic of dealing with clustered alignments in a cohesive fashion, so that
         each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
         for the entire alignment."""
-        def __init__(self, seq_records, cluster_map=None, clusters=None):
+        def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None):
             self.seq_records = seq_records
             self.cluster_map = cluster_map if cluster_map else {'all': seq_records.keys()}
             self.clusters = clusters if clusters else self.cluster_map.keys()
             self.cluster_alns = {}
             for cluster in self.clusters:
                 cluster_seqs = [self.seq_records[x] for x in self.cluster_map[cluster]]
-                self.cluster_alns[cluster] = HyperfreqAlignment(cluster_seqs)
+                missing_ref_seqs = []
+                try:
+                    ref_seq = reference_sequences[cluster] if reference_sequences else None
+                except KeyError:
+                    missing_ref_seqs.append(cluster)
+                    ref_seq = None
+                self.cluster_alns[cluster] = HyperfreqAlignment(cluster_seqs, reference_sequence=ref_seq)
+            if len(missing_ref_seqs) > 0:
+                warnings.warn("Clusters missing representatives: " + ', '.join(missing_ref_seqs))
             self.contexts = set()
 
 
