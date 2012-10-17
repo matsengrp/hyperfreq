@@ -44,7 +44,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     def __init__(self, *args, **kwargs):
         """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
         lets one specify a reference sequence (Bio.Seq type) for comparison istead of a consensus."""
-        #import pdb; pdb.set_trace()
         try:
             reference_sequence = kwargs['reference_sequence']
             del kwargs['reference_sequence']
@@ -134,12 +133,12 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
         self.hm_neg_aln = self[:,:hm_indices[0]]
         n_hypermut = len(hm_indices)
-        for i in range(0,n_hypermut-1):
+        for i in range(0, n_hypermut - 1):
             start_i = hm_indices[i] + 1
             stop_i = hm_indices[i+1]
             self.hm_neg_aln += self[:,start_i:stop_i]
 
-        self.hm_neg_aln += self[:,hm_indices[-1]:]
+        self.hm_neg_aln += self[:,hm_indices[-1]+1:]
 
         return self
 
