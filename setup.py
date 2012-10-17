@@ -1,6 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
-from version import __version__
+from hyperfreq.version import __version__
 
 setup(name='hyperfreq',
         version=__version__,
@@ -12,6 +12,6 @@ setup(name='hyperfreq',
             'console_scripts': [
                 'hyperfreq = hyperfreq.scripts.cli:main'
             ]},
-        packages=['hyperfreq'],
+        packages=find_packages(exclude=['tests']),
         requires=['sekhon', 'biopython'])
 
