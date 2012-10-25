@@ -13,5 +13,5 @@ setup(name='hyperfreq',
                 'hyperfreq = hyperfreq.scripts.cli:main'
             ]},
         packages=find_packages(exclude=['tests']),
-        requires=['sekhon', 'biopython'])
+        install_requires=['sekhon >=0.1', 'biopython'])
 

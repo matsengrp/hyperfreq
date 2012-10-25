@@ -91,8 +91,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.n_control_ctxt = len(ref_seq_indices[control_trans[0]])
 
             seq.pvalue = 1.0 - sekhon.test(
-                seq.n_muts, seq.n_mut_ctxt - seq.n_muts,
-                seq.n_controls, seq.n_control_ctxt - seq.n_controls,
+                seq.n_muts,                  seq.n_controls,
+                seq.n_mut_ctxt - seq.n_muts, seq.n_control_ctxt - seq.n_controls,
                 prob_diff=prob_diff)
             seq.hm_pos = seq.pvalue <= pvalue_cutoff
 
