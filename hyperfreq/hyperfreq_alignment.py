@@ -41,41 +41,62 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 self[:,i].count(mut_residue) >= trans_threshold]
 
 
+    def __consensus__(self, consensus_threshold):
+        aln_info = AlignInfo.SummaryInfo(self)
+        return aln_info.dumb_consensus(threshold=consensus_threshold)
+
+
     def __init__(self, *args, **kwargs):
         """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
         lets one specify a reference sequence (Bio.Seq type) for comparison istead of a consensus."""
-        try:
-            reference_sequence = kwargs['reference_sequence']
-            del kwargs['reference_sequence']
 
-        except KeyError:
-            reference_sequence = None
+        def strip_option(option_name, default=None):
+            try:
+                value = kwargs[option_name]
+                del kwargs[option_name]
+            except KeyError:
+                value = None
+            return value
 
+
+        self.consensus_threshold = strip_option('consensus_threshold', 0.5)
+        ref_seq = strip_option('reference_sequence')
         super(HyperfreqAlignment, self).__init__(*args, **kwargs)
-        self.reference_sequence = reference_sequence.seq if reference_sequence else None
+        self.reference_sequence = ref_seq if ref_seq else self.__consensus__(self.consensus_threshold)
+        #import pdb; pdb.set_trace()
 
 
-    def analyze_hypermuts(self, consensus_threshold=0.5, mut_trans=('G','A'), control_trans=('C', 'T'),
+    def context(self, i):
+        """Context for a given index i (0-based)"""
+        try:
+            return str(self.reference_sequence[i:i+2])
+        except IndexError:
+            return str(self.reference_sequence[i:i+1])
+
+
+    def analyze_hypermuts(self, consensus_threshold=None, mut_trans=('G','A'), control_trans=('C', 'T'),
             pvalue_cutoff=0.05, prob_diff=0.0):
-        """This lovely bunch of coconuts does all of the grunt work, running through the alignment to find
-        hypermutation on a gross and by_seq basis.
+        """This is where all of the grunt work happens; running through the alignment to find
+        hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
+        alingment initialization (by passing None) but can be overridden herek.
         """
-        aln_info = AlignInfo.SummaryInfo(self)
+
+        # Want to make it possible to override the consensus_threshold established on initialization. Making
+        # sure that it's created on initialization first though, makes things safter, as you know there is
+        # always a reference seq
+        if consensus_threshold and consensus_threshold != self.consensus_threshold:
+            self.consensus_threshold = consensus_threshold
+            self.reference_sequence = self.__consensus__(consensus_threshold)
+
         self.mut_trans, self.control_trans = mut_trans, control_trans
-        ref_seq = self.reference_sequence if self.reference_sequence else aln_info.dumb_consensus(threshold=consensus_threshold)
 
         def findall(ref_seq, residue):
-            return [i for i in range(0, len(ref_seq)) if ref_seq[i] == residue]
-
-        def context(i):
-            try:
-                return str(ref_seq[i:i+2])
-            except IndexError:
-                return str(ref_seq[i:i+1])
+            return [i for i in range(0, len(self.reference_sequence)) if
+                    self.reference_sequence[i] == residue]
 
         ref_seq_indices = {}
         for residue in HyperfreqAlignment.RESIDUES:
-            ref_seq_indices[residue] = findall(ref_seq, residue)
+            ref_seq_indices[residue] = findall(self.reference_sequence, residue)
 
         for seq in self:
             seq.mut_indices = {}
@@ -99,9 +120,9 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.contexts = {}
             for i in seq.mut_indices[mut_trans]:
                 try:
-                    seq.contexts[context(i)] += 1
+                    seq.contexts[self.context(i)] += 1
                 except KeyError:
-                    seq.contexts[context(i)] = 1
+                    seq.contexts[self.context(i)] = 1
 
         self.mut_seqs = [s for s in self if s.hm_pos]
         self.mut_aln = Align.MultipleSeqAlignment(self.mut_seqs)
@@ -109,7 +130,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         self.mut_indices.sort()
         # That is, the 1-based index positions
         self.mut_columns = [i+1 for i in self.mut_indices]
-        self.mut_contexts = [context(i) for i in self.mut_indices]
+        self.mut_contexts = [self.context(i) for i in self.mut_indices]
         self.muts_per_site = [self.mut_aln[:,i].count(mut_trans[1]) for i in self.mut_indices]
 
         return self
@@ -142,7 +163,9 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
         return self
 
-    def write_analysis(self, gross_handle=None, gross_writer=None, by_seq_handle=None, by_seq_writer=None,
+    def write_analysis(self,
+            gross_handle=None, gross_writer=None,
+            by_seq_handle=None, by_seq_writer=None,
             cluster=None, header=True, contexts=None):
         """This method can be either used by itself or by the HyperfreqAlign.Set class instances to write for
         many sets. As such, it is possible either to pass in a gross_handle file for csv writer, or a
@@ -156,7 +179,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         if header:
             sorted_contexts = list(set(self.contexts))
             sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
-            gross_writer.writerow(['cluster','column','context','count'])
+            gross_writer.writerow(['cluster', 'sequence', 'column','context'])
 
             by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
                     'n_muts', 'n_controls', 'n_mut_ctxt', 'n_control_ctxt'] +
@@ -165,11 +188,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         else:
             sorted_contexts = contexts
 
-        for i in xrange(0, len(self.mut_indices)):
-            row = [cluster, self.mut_columns[i], self.mut_contexts[i], self.muts_per_site[i]]
-            gross_writer.writerow(row)
-
         for seq in self:
+            # Gross writer now does by seq
+            if seq.hm_pos:
+                for i in seq.mut_indices[self.mut_trans]:
+                    row = [cluster, seq.name, i+1, self.context(i)]
+                    gross_writer.writerow(row)
+
             row = [seq.name, cluster, seq.pvalue, seq.hm_pos, seq.n_muts, seq.n_controls, seq.n_mut_ctxt,
                     seq.n_control_ctxt]
             row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
@@ -187,7 +212,12 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         """This class organizes the logic of dealing with clustered alignments in a cohesive fashion, so that
         each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
         for the entire alignment."""
-        def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None):
+        def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None,
+                consensus_threshold=0.5):
+            """Options one can specify here are reference sequence and consensus_threshold, both of which are
+            passed along to HyperfreqAlignment instantiations. Note that one can override the consensus
+            threshold (or reference_seqs) passed here by passing in a consensus_threshold to analyze
+            hypermuts."""
             self.seq_records = seq_records
             self.cluster_map = cluster_map if cluster_map else {'all': seq_records.keys()}
             self.clusters = clusters if clusters else self.cluster_map.keys()
@@ -200,15 +230,19 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 except KeyError:
                     missing_ref_seqs.append(cluster)
                     ref_seq = None
-                self.cluster_alns[cluster] = HyperfreqAlignment(cluster_seqs, reference_sequence=ref_seq)
+                self.cluster_alns[cluster] = HyperfreqAlignment(cluster_seqs, reference_sequence=ref_seq,
+                        consensus_threshold=consensus_threshold)
             if len(missing_ref_seqs) > 0:
                 warnings.warn("Clusters missing representatives: " + ', '.join(missing_ref_seqs))
             self.contexts = set()
 
 
-        def analyze_hypermuts(self, consensus_threshold=0.5, mut_trans=('G','A'), control_trans=('C', 'T'),
+        def analyze_hypermuts(self, consensus_threshold=None, mut_trans=('G','A'), control_trans=('C', 'T'),
             pvalue_cutoff=0.05, prob_diff=0.0):
-            """Run the analysis for each cluster's HyperfreqAlignment."""
+            """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
+            transition, the control transition here, and well as the probability difference and pvalue cutoff
+            which for the decision procedure.  Note that if you wish to change the consensus_threshold used to
+            instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
                 aln.analyze_hypermuts(consensus_threshold,
                         mut_trans=mut_trans,
@@ -224,7 +258,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             gross_writer = csv.writer(gross_handle)
             by_seq_writer = csv.writer(by_seq_handle)
 
-            gross_writer.writerow(['cluster','column','context','count'])
+            gross_writer.writerow(['cluster', 'sequence', 'column', 'context'])
 
             by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
                     'n_muts', 'n_controls', 'n_mut_ctxt', 'n_control_ctxt'] +
