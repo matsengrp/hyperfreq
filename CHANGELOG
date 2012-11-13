@@ -2,6 +2,13 @@
 # CHANGELOG
 
 
+## 0.2.1
+
+* Gross output now has hypermutated columns on a seq by seq basis.
+* Now creates reference sequence on instantiation. Can still be modified at run time by passing in different consensus_threshold
+* Pulled out method for finding context at a given residue.
+
+
 ## 0.1.4
 
 Switched out Sekhon 0.0.1 for >=0.1 (switched order of arguments to test function)
