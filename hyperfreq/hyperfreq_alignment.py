@@ -226,7 +226,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 cluster_seqs = [self.seq_records[x] for x in self.cluster_map[cluster]]
                 missing_ref_seqs = []
                 try:
-                    ref_seq = reference_sequences[cluster] if reference_sequences else None
+                    ref_seq = reference_sequences[cluster].seq if reference_sequences else None
                 except KeyError:
                     missing_ref_seqs.append(cluster)
                     ref_seq = None

@@ -5,6 +5,7 @@ import csv
 from os import path
 from Bio import AlignIO
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
 
@@ -28,6 +29,14 @@ def split(args):
     for handle in [args.alignment, args.columns, hm_pos_handle, hm_neg_handle]:
         handle.close()
 
+def write_reference_seqs(alignments, fn_base):
+    handle = open(fn_base + '.ref_seqs.fasta', 'w')
+    def refseq(cluster):
+        seq = alignments.cluster_alns[cluster].reference_sequence
+        return SeqRecord(seq, id=cluster, name=cluster, description="")
+    refseqs = (refseq(cluster) for cluster in alignments.clusters)
+    SeqIO.write(refseqs, handle, 'fasta')
+    handle.close()
 
 def analyze(args):
     seq_records = SeqIO.to_dict(SeqIO.parse(args.alignment, 'fasta'))
@@ -50,6 +59,9 @@ def analyze(args):
             pvalue_cutoff=0.05, prob_diff=args.prob_diff)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
+
+    if args.write_references:
+        write_reference_seqs(alignments, fn_base)
 
     # Closing files
     gross_handle.close()
@@ -80,16 +92,23 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--cluster-col', default='cluster_id',
             help="Column in cluster map file which you would like to use for cluster specification")
     analyze_args.add_argument('--consensus-threshold', type=float,
-            help='As ratio decimal -- used if cluster map is not', default=0.5)
+            help="""As ratio decimal -- used for computation consensus sequences as reference sequences for
+            HM evaluation when reference sequences are not explicity specified in --reference-sequences""", default=0.5)
+    analyze_args.add_argument('--write-references', default=False, action='store_true',
+            help="""Writes to a file the reference sequences (consensus or otherwise) used for HM evalutation
+            for each cluster with cluster names as seq names (essentially in the format one would expect for
+            --reference-sequences""")
     analyze_args.add_argument('--clusters', type=cs_arg,
             help='csv string - what clusters do you want to use')
     analyze_args.add_argument('--control-trans', default=('C', 'T'), type=tuple, help="Format: 'CT' for C -> T")
     analyze_args.add_argument('--prob-diff', default=0.0, type=float,
-            help="Value of X in Sekhon Fisher Test of P1 - P2 > X")
+            help="Value of X in Sekhon Test of P1 - P2 > X")
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
             sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
-            ensure that there is a reference_sequence named 'all' in your reference-sequences alignment.""")
+            ensure that there is a reference_sequence named 'all' in your reference-sequences alignment.
+            Clusters for which no reference sequence is specified will be compared to a computed consensus
+            sequence as reference.""")
     analyze_args.set_defaults(prefix='hyperfreq_analysis')
     analyze_args.set_defaults(func=analyze)
 
