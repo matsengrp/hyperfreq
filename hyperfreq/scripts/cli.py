@@ -56,7 +56,7 @@ def analyze(args):
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters,
             reference_sequences=reference_sequences)
     alignments.analyze_hypermuts(args.consensus_threshold, control_trans=args.control_trans,
-            pvalue_cutoff=0.05, prob_diff=args.prob_diff)
+            mut_trans=args.mut_trans, pvalue_cutoff=0.05, prob_diff=args.prob_diff)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
 
@@ -101,6 +101,7 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--clusters', type=cs_arg,
             help='csv string - what clusters do you want to use')
     analyze_args.add_argument('--control-trans', default=('C', 'T'), type=tuple, help="Format: 'CT' for C -> T")
+    analyze_args.add_argument('--mut-trans', default=('G', 'A'), type=tuple, help="Format: 'GA' for G -> A")
     analyze_args.add_argument('--prob-diff', default=0.0, type=float,
             help="Value of X in Sekhon Test of P1 - P2 > X")
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
