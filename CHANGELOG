@@ -1,6 +1,10 @@
 
 # CHANGELOG
 
+## 0.3.2
+
+Now possible to specify mutation pattern from CLI
+
 ## 0.3.1
 
 * Added ability to write out reference seqs
