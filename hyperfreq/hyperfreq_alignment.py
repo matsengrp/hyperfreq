@@ -74,8 +74,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+1])
 
 
+    # XXX - may want to leave this here for doing stats
     def single_nt_mut_analysis(self):
-        # XXX - may want to leave this here for doing stats
         def findall(ref_seq, residue):
             return [i for i in range(0, len(self.reference_sequence)) if
                     self.reference_sequence[i] == residue]
@@ -135,14 +135,14 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.contexts = {}
 
 
-        self.mut_seqs = [s for s in self if s.hm_pos]
-        self.mut_aln = Align.MultipleSeqAlignment(self.mut_seqs)
-        self.mut_indices = list(set([i for s in self.mut_seqs for i in s.focus_pos_indices]))
-        self.mut_indices.sort()
+        self.hm_pos_seqs = [s for s in self if s.hm_pos]
+        self.hm_pos_aln = Align.MultipleSeqAlignment(self.hm_pos_seqs)
+        self.hm_pos_indices = list(set([i for s in self.hm_pos_seqs for i in s.focus_pos_indices]))
+        self.hm_pos_indices.sort()
         # That is, the 1-based index positions
-        self.mut_columns = [i+1 for i in self.mut_indices]
+        self.mut_columns = [i+1 for i in self.hm_pos_indices]
         # XXX - need to replace this by a more flexible site probing system
-        self.mut_contexts = [self.context(i) for i in self.mut_indices]
+        self.mut_contexts = [self.context(i) for i in self.hm_pos_indices]
         # XXX - don't seem to have actually been using this. Probably just wanted it for stats. May throw back
         # in later
         #self.muts_per_site = [self.mut_aln[:,i].count(mut_trans[1]) for i in self.mut_indices]
@@ -156,8 +156,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
             hm_indices.sort()
         else:
-            # if mut_indices is not specified, use the analysis results
-            hm_indices = self.mut_indices
+            # if hm_columns is not specified, use the analysis results
+            hm_indices = self.hm_pos_indices
 
         # soi is either a seq or index - handle appropriately
         def hyp_reducer(soi, i):
