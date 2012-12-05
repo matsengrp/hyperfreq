@@ -134,7 +134,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
             seq.contexts = {}
 
-
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
         self.hm_pos_aln = Align.MultipleSeqAlignment(self.hm_pos_seqs)
         self.hm_pos_indices = list(set([i for s in self.hm_pos_seqs for i in s.focus_pos_indices]))

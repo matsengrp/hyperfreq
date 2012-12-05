@@ -5,7 +5,7 @@ from hyperfreq.cluster import load_cluster_map
 from hyperfreq import mut_pattern
 
 old_focus_pattern = mut_pattern.MutPattern(('G','A'), '')
-old_control_pattern = mut_pattern.MutPattern(('T','C'), '')
+old_control_pattern = mut_pattern.MutPattern(('C','T'), '')
 
 class TestBasicAnalysis(unittest.TestCase):
     def setUp(self):
@@ -61,6 +61,7 @@ class TestAlignmentSet(unittest.TestCase):
         all_seqs = [seq for aln in aln_set.cluster_alns.values() for seq in aln]
         # Constructed to be false for this one, since not enough consensus with whole align
         self.assertFalse(helpers.find_seq(all_seqs, 'seq1.3').hm_pos)
+        # XXX - why is this failing now?
         self.assertTrue(helpers.find_seq(all_seqs, 'seq2.3').hm_pos)
         self.assertEqual(sum([s.hm_pos for s in all_seqs]), 1)
 
