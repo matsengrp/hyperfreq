@@ -11,7 +11,11 @@ class MutPattern(object):
         i=1)."""
         mut = regexp_negation(self.mutation[i]) if negate_mut else self.mutation[i]
         (us, ds) = self.upstream_context, self.downstream_context if context else ('', '')
-        string = "{}(?P<mut_index>{}){}".format(self.upstream_context, mut, self.downstream_context)
+        # Have to be careful here to use lookaheads not to consume parts of the string so that we don't miss
+        # overlapding matches
+        us = '' if us == '' else "(?<={})".format(us) 
+        ds = '' if ds == '' else "(?={})".format(ds)
+        string = us + "(?P<mut_index>{})".format(mut) + ds
         return re.compile(string)
 
     def __init__(self, mutation, downstream_context, upstream_context=''):
@@ -49,14 +53,16 @@ class MutPattern(object):
         return [i for i in self.mut_neg_indices(seq) if ref_indices.count(i) > 0]
     
 
-    # XXX - need to make sure we get the matching on both vs matching on one right
-    # not sure how this will work yet
-
-
 
 A3G_FOCUS = MutPattern(('G','A'), 'G[^C]')
 A3G_CONTROL = A3G_FOCUS.context_negation()
+A3G = (A3G_FOCUS, A3G_CONTROL)
 
 A3F_FOCUS = MutPattern(('G','A'), '[AC][^C]')
 A3F_CONTROL = A3F_FOCUS.context_negation()
+A3F = (A3F_FOCUS, A3F_CONTROL)
+
+A3_GEN_FOCUS = MutPattern(('G','A'), '[^T][^C]')
+A3_GEN_CONTROL = A3_GEN_FOCUS.context_negation()
+A3_GEN = (A3_GEN_FOCUS, A3_GEN_CONTROL)
 
