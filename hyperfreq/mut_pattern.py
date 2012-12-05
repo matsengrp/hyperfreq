@@ -16,11 +16,7 @@ class MutPattern(object):
         us = '' if us == '' else "(?<={})".format(us) 
         ds = '' if ds == '' else "(?={})".format(ds)
         string = us + "(?P<mut_index>{})".format(mut) + ds
-        try:
-            return re.compile(string)
-        except:
-            print string
-            import pdb; pdb.set_trace()
+        return re.compile(string)
 
     def __init__(self, mutation, downstream_context, upstream_context=''):
         self.mutation = mutation
