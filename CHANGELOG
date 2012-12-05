@@ -1,27 +1,35 @@
 
 # CHANGELOG
 
-## 0.3.2
+## Version 1.0
+
+This version sees the addition of context based evaluation, and a whole host of changes to the way things are happening behind the scenes.
+This is currently in beta.
+
+
+
+## Version 0
+
+### 0.3.2
 
 Now possible to specify mutation pattern from CLI
 
-## 0.3.1
+### 0.3.1
 
 * Added ability to write out reference seqs
 * When loadinbg in reference seqs from a reference seqs file, seq is now stored as a Seq instead of SeqRecord for better underlying consistency
 
-## 0.2.1
+### 0.2.1
 
 * Gross output now has hypermutated columns on a seq by seq basis.
 * Now creates reference sequence on instantiation. Can still be modified at run time by passing in different consensus_threshold
 * Pulled out method for finding context at a given residue.
 
-
-## 0.1.4
+### 0.1.4
 
 Switched out Sekhon 0.0.1 for >=0.1 (switched order of arguments to test function)
 
-
-## 0.1.3
+### 0.1.3
 
 Haven't been keeping close track up till now...
+
