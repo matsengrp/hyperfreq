@@ -84,7 +84,5 @@ A3_GEN_CONTROL = MutPattern(('G','A'), 'T')
 A3_GEN = (A3_GEN_FOCUS, A3_GEN_CONTROL)
 
 
-def pattern_map(name):
-    return {'a3g':A3G, 'a3f':A3F, 'a3-gen':A3_GEN}[name]
-
+pattern_map = {'a3g':A3G, 'a3f':A3F, 'a3-gen':A3_GEN}
 
