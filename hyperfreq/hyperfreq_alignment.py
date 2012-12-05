@@ -278,7 +278,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             gross_writer.writerow(['cluster', 'sequence', 'column', 'context'])
 
             by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
-                    'n_muts', 'n_controls', 'n_mut_ctxt', 'n_control_ctxt'] +
+                    'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] +
                     #[HyperfreqAlignment.mut_col_name(mut) for mut in HyperfreqAlignment.MUT_PATTERNS] +
                     sorted_contexts)
 
