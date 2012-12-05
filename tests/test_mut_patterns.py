@@ -58,6 +58,12 @@ class FunctionalTests(unittest.TestCase):
         ref_indices = mp.mut_pos_indices(query_seq)
         self.assertEqual([1,3,4], ref_indices)
 
+    def test_pos_indices(self):
+        mp = mut_pattern.MutPattern(('G','A'), '[AG]')
+        query_seq = 'GAGAAGAT'
+        ref_indices = mp.pos_indices(query_seq, [1,2,3])
+        self.assertEqual([1,3], ref_indices)
+
     def test_mut_neg_indices(self):
         mp = mut_pattern.MutPattern(('G','A'), '[AG]')
         query_seq = 'GAGAAGAT'

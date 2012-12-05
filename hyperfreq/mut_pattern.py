@@ -1,7 +1,15 @@
 import re
+import Bio
 
 def regexp_negation(string):
     return "(?!{})".format(string)
+
+def strgfy_seqish(seqish):
+    if type(seqish) == Bio.SeqRecord.SeqRecord:
+        seq = seqish.seq
+    else:
+        seq = seqish
+    return str(seq)
 
 class MutPattern(object):
 
@@ -44,11 +52,11 @@ class MutPattern(object):
         return [m.start('mut_index') for m in self.mut_neg_regexp.finditer(seq)]
 
     def pos_indices(self, seq, ref_indices):
-        seq = str(seq)
+        seq = strgfy_seqish(seq)
         return [i for i in self.mut_pos_indices(seq) if ref_indices.count(i) > 0]
 
     def neg_indices(self, seq, ref_indices):
-        seq = str(seq)
+        seq = strgfy_seqish(seq)
         return [i for i in self.mut_neg_indices(seq) if ref_indices.count(i) > 0]
     
 

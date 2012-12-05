@@ -2,7 +2,10 @@ import unittest
 import helpers
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
 from hyperfreq.cluster import load_cluster_map
+from hyperfreq import mut_pattern
 
+old_focus_pattern = mut_pattern.MutPattern(('G','A'), '')
+old_control_pattern = mut_pattern.MutPattern(('T','C'), '')
 
 class TestBasicAnalysis(unittest.TestCase):
     def setUp(self):
@@ -15,18 +18,18 @@ class TestBasicAnalysis(unittest.TestCase):
         ATCAATCAGTCAATCA"""
         self.seqs = helpers.parse_fasta(aln_string)
         self.aln = HyperfreqAlignment(self.seqs.values())
-        self.aln.analyze_hypermuts()
+        self.aln.analyze_hypermuts(focus_pattern=old_focus_pattern, control_pattern=old_control_pattern)
 
     def test_hm_pos(self):
         self.assertTrue(helpers.find_seq(self.aln, 'seq3').hm_pos)
         for seq in ['seq1', 'seq2']:
             self.assertFalse(helpers.find_seq(self.aln, seq).hm_pos)
 
-    def test_mut_indices(self):
-        mut_indices = [0, 4, 12]
-        self.assertEqual(helpers.find_seq(self.aln, 'seq3').mut_indices[('G', 'A')], mut_indices)
-        self.assertEqual(self.aln.mut_indices, mut_indices)
-        self.assertEqual(self.aln.mut_columns, [i+1 for i in mut_indices])
+    def test_hm_pos_indices(self):
+        hm_pos_indices = [0, 4, 12]
+        self.assertEqual(helpers.find_seq(self.aln, 'seq3').focus_pos_indices, hm_pos_indices)
+        self.assertEqual(self.aln.hm_pos_indices, hm_pos_indices)
+        self.assertEqual(self.aln.mut_columns, [i+1 for i in hm_pos_indices])
 
 
 class TestAlignmentSet(unittest.TestCase):
@@ -51,7 +54,7 @@ class TestAlignmentSet(unittest.TestCase):
 
     def test_without_cluster_map(self):
         aln_set = HyperfreqAlignment.Set(self.seqs)
-        aln_set.analyze_hypermuts()
+        aln_set.analyze_hypermuts(focus_pattern=old_focus_pattern, control_pattern=old_control_pattern)
         self.assertEqual(len(aln_set.clusters), 1)
         self.assertEqual(len(aln_set.cluster_alns), 1)
         self.assertIn('all', aln_set.cluster_alns)
@@ -63,7 +66,7 @@ class TestAlignmentSet(unittest.TestCase):
 
     def test_with_cluster_map(self):
         aln_set = HyperfreqAlignment.Set(self.seqs, cluster_map=self.cluster_map)
-        aln_set.analyze_hypermuts()
+        aln_set.analyze_hypermuts(focus_pattern=old_focus_pattern, control_pattern=old_control_pattern)
         self.assertEqual(len(aln_set.clusters), 2)
         self.assertEqual(len(aln_set.cluster_alns), 2)
         all_seqs = [seq for aln in aln_set.cluster_alns.values() for seq in aln]
@@ -80,7 +83,7 @@ class TestAlignmentSet(unittest.TestCase):
         """)
         aln_set = HyperfreqAlignment.Set(self.seqs, cluster_map=self.cluster_map,
             reference_sequences=ref_seqs)
-        aln_set.analyze_hypermuts()
+        aln_set.analyze_hypermuts(focus_pattern=old_focus_pattern, control_pattern=old_control_pattern)
         all_seqs = [seq for aln in aln_set.cluster_alns.values() for seq in aln]
         for seq in ['seq1.{}'.format(i) for i in [1,2,3]]:
             self.assertFalse(helpers.find_seq(all_seqs, seq).hm_pos)

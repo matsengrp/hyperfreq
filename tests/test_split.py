@@ -1,6 +1,7 @@
 import unittest
 import helpers
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
+from test_analysis import old_focus_pattern, old_control_pattern
 
 class TestBasicSplit(unittest.TestCase):
     def assertSeqsEqual(self, seq_record, string):
@@ -19,7 +20,7 @@ class TestBasicSplit(unittest.TestCase):
 
     def test_split_from_analysis_indices(self):
         # hm_pos should == [0, 4, 12]
-        self.aln.analyze_hypermuts()
+        self.aln.analyze_hypermuts(focus_pattern=old_focus_pattern, control_pattern=old_control_pattern)
         self.aln.split_hypermuts()
         neg, pos = self.aln.hm_neg_aln, self.aln.hm_pos_aln
         self.assertEqual(neg.get_alignment_length(), 13)
