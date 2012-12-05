@@ -34,15 +34,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         return [i for i in xrange(0, aln_length) if
                 self.__res_ratio__(residue,i) >= consensus_threshold]
 
-    # XXX
-    # Hmm... not even sure this was getting used anymore...
-    #def __mutation_sites__(self, orig_residue, mut_residue,
-            #consensus_threshold=0.5, trans_threshold=1):
-        #possible_sites = self.__res_sites__(orig_residue, consensus_threshold)
-        #return [i for i in possible_sites if
-                #self[:,i].count(mut_residue) >= trans_threshold]
-
-
     def __consensus__(self, consensus_threshold):
         aln_info = AlignInfo.SummaryInfo(self)
         return aln_info.dumb_consensus(threshold=consensus_threshold)
@@ -74,13 +65,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+1])
 
 
-    # XXX - may want to leave this here for doing stats
     def single_nt_mut_analysis(self):
         def findall(ref_seq, residue):
             return [i for i in range(0, len(self.reference_sequence)) if
                     self.reference_sequence[i] == residue]
 
         ref_seq_indices = {}
+        #if type(self.reference_sequence) == 
         for residue in HyperfreqAlignment.RESIDUES:
             ref_seq_indices[residue] = findall(self.reference_sequence, residue)
 
@@ -88,9 +79,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.mut_indices = {}
             for cons_res in ref_seq_indices.keys():
                 for seq_res in HyperfreqAlignment.RESIDUES:
+                    # XXX - interesting. this could be a good place to try and catch people tring to use a
+                    # sequence of the wrong length for a reference sequence. Leads to IndexError in seq[i] if
+                    # ref is longer than it should be
                     seq.mut_indices[(cons_res, seq_res)] = [i for i in ref_seq_indices[cons_res] if
                             seq[i] == seq_res]
 
+            seq.contexts = {}
             for i in seq.mut_indices[self.focus_pattern.mutation]:
                 try:
                     seq.contexts[self.context(i)] += 1
@@ -116,6 +111,11 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
         focus_ref_indices = self.focus_pattern.ref_match_indices(self.reference_sequence)
         control_ref_indices = self.control_pattern.ref_match_indices(self.reference_sequence)
+        
+        # XXX - Needed for doing the context; be aware that taking this out would lead to an error later where
+        # seq.context is comiled for other analysis. Could fix this at some point if we want to make this
+        # optional
+        self.single_nt_mut_analysis()
 
         for seq in self:
             seq.focus_pos_indices = self.focus_pattern.pos_indices(seq, focus_ref_indices)
@@ -132,7 +132,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     prob_diff=prob_diff)
             seq.hm_pos = seq.pvalue <= pvalue_cutoff
 
-            seq.contexts = {}
 
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
         self.hm_pos_aln = Align.MultipleSeqAlignment(self.hm_pos_seqs)
@@ -140,11 +139,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         self.hm_pos_indices.sort()
         # That is, the 1-based index positions
         self.mut_columns = [i+1 for i in self.hm_pos_indices]
-        # XXX - need to replace this by a more flexible site probing system
         self.mut_contexts = [self.context(i) for i in self.hm_pos_indices]
         # XXX - don't seem to have actually been using this. Probably just wanted it for stats. May throw back
         # in later
-        #self.muts_per_site = [self.mut_aln[:,i].count(mut_trans[1]) for i in self.mut_indices]
+        #self.muts_per_site = [self.mut_aln[:,i].count(self.focus_pattern.mutation[1]) for i in self.hm_pos_indices]
 
         return self
 
@@ -207,8 +205,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         for seq in self:
             # Gross writer now does by seq
             if seq.hm_pos:
-                # XXX - how is this not breaking? We'll have to see what output is actually atm
-                for i in seq.mut_indices[self.mut_trans]:
+                for i in seq.focus_pos_indices:
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
@@ -263,7 +260,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
                 aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold, prob_diff=prob_diff)
-                # XXX - shit. Looks like I do have to just go through and fetch these or I'll get any array
+                # XXX - Should come up with something smart here in case we don't compute the context
                 self.contexts.update(aln.mut_contexts)
 
 

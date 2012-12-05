@@ -70,3 +70,13 @@ class FunctionalTests(unittest.TestCase):
         ref_indices = mp.mut_neg_indices(query_seq)
         self.assertEqual([0,2,5], ref_indices)
 
+
+if __name__ == '__main__':
+    a3g_focus = mut_pattern.A3G_FOCUS
+    a3g_control = mut_pattern.A3G_CONTROL
+
+    print a3g_focus.mut_pos_indices('AGAGGGG')
+    print a3g_focus.mut_neg_indices('AGAGGGG')
+    print a3g_control.mut_pos_indices('ATATGGCG')
+    print a3g_control.mut_neg_indices('ATATGGCG')
+

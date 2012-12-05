@@ -105,3 +105,26 @@ class TestLoadClusterMap(unittest.TestCase):
         self.assertEqual(loaded_cluster_map, cluster_map)
 
 
+class TestContextBasedEvaluation(unittest.TestCase):
+    def setUp(self):
+        ref_seq = helpers.parse_fasta("""
+        >all
+        GGGGGGGGGTGTGTGTGT""")
+        self.aln = HyperfreqAlignment(helpers.parse_fasta("""
+        >seq1
+        GGGGGGGGGTGTGTGTGT
+        >seq2
+        AGAGAGAGGTGTGTGTGT
+        >seq3
+        GGGGGGGGGTATATATAT
+        """).values(), reference_sequence = ref_seq['all'])
+        
+
+    def test_a3g(self):
+        self.aln.analyze_hypermuts(focus_pattern=mut_pattern.A3G_FOCUS,
+                control_pattern=mut_pattern.A3G_CONTROL)
+        self.assertFalse(helpers.find_seq(self.aln, 'seq1').hm_pos)
+        self.assertFalse(helpers.find_seq(self.aln, 'seq3').hm_pos)
+        self.assertTrue(helpers.find_seq(self.aln, 'seq2').hm_pos)
+
+
