@@ -8,6 +8,7 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
+from hyperfreq import mut_pattern
 
 
 def split(args):
@@ -55,8 +56,11 @@ def analyze(args):
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters,
             reference_sequences=reference_sequences)
-    alignments.analyze_hypermuts(args.consensus_threshold, control_trans=args.control_trans,
-            mut_trans=args.mut_trans, pvalue_cutoff=0.05, prob_diff=args.prob_diff)
+    alignments.analyze_hypermuts(
+            # XXX - need to update inputs here to take patterns and not trans
+            # focus_pattern=args.focus_pattern, control_pattern=args.control_pattern,
+            focus_pattern=mut_pattern.A3G_FOCUS, control_pattern=mut_pattern.A3G_CONTROL,
+            consensus_threshold=args.consensus_threshold, pvalue_cutoff=0.05, prob_diff=args.prob_diff)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
 

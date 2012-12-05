@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 alias anal='python -m hyperfreq.scripts.cli analyze tests/data/alignment.fasta --out-dir tests/out'
 
 echo "Simple test"
