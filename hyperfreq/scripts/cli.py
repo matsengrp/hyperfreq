@@ -57,9 +57,7 @@ def analyze(args):
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters,
             reference_sequences=reference_sequences)
     alignments.analyze_hypermuts(
-            # XXX - need to update inputs here to take patterns and not trans
-            # focus_pattern=args.focus_pattern, control_pattern=args.control_pattern,
-            focus_pattern=mut_pattern.A3G_FOCUS, control_pattern=mut_pattern.A3G_CONTROL,
+            focus_pattern=args.pattern[0], control_pattern=args.pattern[1],
             consensus_threshold=args.consensus_threshold, pvalue_cutoff=0.05, prob_diff=args.prob_diff)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
@@ -104,8 +102,9 @@ def setup_analyze_args(subparsers):
             --reference-sequences""")
     analyze_args.add_argument('--clusters', type=cs_arg,
             help='csv string - what clusters do you want to use')
-    analyze_args.add_argument('--control-trans', default=('C', 'T'), type=tuple, help="Format: 'CT' for C -> T")
-    analyze_args.add_argument('--mut-trans', default=('G', 'A'), type=tuple, help="Format: 'GA' for G -> A")
+    analyze_args.add_argument('--pattern', choices=['a3g', 'a3f', 'a3-gen'], default='a3g',
+            type=mut_pattern.pattern_map, help="""Specify the type of apobec activity you would like to select
+            for""")
     analyze_args.add_argument('--prob-diff', default=0.0, type=float,
             help="Value of X in Sekhon Test of P1 - P2 > X")
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
