@@ -78,11 +78,13 @@ A3F_FOCUS = MutPattern(('G','A'), '[AC][^C]')
 A3F_CONTROL = MutPattern(('G','A'), '[^AC][ACTG]|[AC]C')
 A3F = (A3F_FOCUS, A3F_CONTROL)
 
-A3_GEN_FOCUS = MutPattern(('G','A'), '[^T]')
-#A3_GEN_CONTROL = A3_GEN_FOCUS.context_negation()
-A3_GEN_CONTROL = MutPattern(('G','A'), 'T')
-A3_GEN = (A3_GEN_FOCUS, A3_GEN_CONTROL)
+A3X1_FOCUS = MutPattern(('G','A'), '[GA]')
+A3X1_CONTROL = MutPattern(('G','A'), 'T')
+A3X1 = (A3X1_FOCUS, A3X1_CONTROL)
 
+A3X2_FOCUS = MutPattern(('G','A'), '[^T]')
+A3X2_CONTROL = MutPattern(('G','A'), 'T')
+A3X2 = (A3X2_FOCUS, A3X2_CONTROL)
 
-pattern_map = {'a3g':A3G, 'a3f':A3F, 'a3-gen':A3_GEN}
+pattern_map = {'a3g':A3G, 'a3f':A3F, 'a3x1':A3X1, 'a3x2':A3X2}
 

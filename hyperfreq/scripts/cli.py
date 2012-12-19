@@ -58,7 +58,7 @@ def analyze(args):
             reference_sequences=reference_sequences)
     pattern = mut_pattern.pattern_map[args.pattern]
     alignments.analyze_hypermuts(focus_pattern=pattern[0], control_pattern=pattern[1],
-            consensus_threshold=args.consensus_threshold, pvalue_cutoff=0.05, prob_diff=args.prob_diff)
+            consensus_threshold=args.consensus_threshold, br_left_cutoff=args.br_left_cutoff)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
 
@@ -104,8 +104,8 @@ def setup_analyze_args(subparsers):
             help='csv string - what clusters do you want to use')
     analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='a3g',
             help="""Specify the type of apobec activity you would like to select for""")
-    analyze_args.add_argument('--prob-diff', default=0.0, type=float,
-            help="Value of X in Sekhon Test of P1 - P2 > X")
+    analyze_args.add_argument('--br-left-cutoff', default=1.8, type=float,
+            help="For hm_pos determination")
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
             sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,

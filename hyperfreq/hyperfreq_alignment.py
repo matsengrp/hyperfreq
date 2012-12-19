@@ -1,8 +1,12 @@
 from Bio import Align
 from Bio.Align import AlignInfo
 import warnings
-import sekhon
+from beta_rat import BetaRat
 import csv
+import fisher
+from time import time
+
+VERBOSE = True
 
 
 class HyperfreqAlignment(Align.MultipleSeqAlignment):
@@ -12,6 +16,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
+    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_right', 'hm_pos',
+                    'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
     def context_sorter(c1, c2):
@@ -94,7 +100,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
     def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-            pvalue_cutoff=0.05, prob_diff=0.0):
+            br_left_cutoff=1.8, prob_diff=0.0):
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
@@ -128,9 +134,25 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.n_focus_neg = len(seq.focus_neg_indices)
             seq.n_control_neg = len(seq.control_neg_indices)
 
-            seq.pvalue = 1.0 - sekhon.test(seq.n_focus_pos, seq.n_control_pos, seq.n_focus_neg, seq.n_control_neg,
-                    prob_diff=prob_diff)
-            seq.hm_pos = seq.pvalue <= pvalue_cutoff
+            seq.beta_rat = BetaRat(seq.n_focus_pos + 1, seq.n_control_pos + 1, seq.n_focus_neg + 1,
+                    seq.n_control_neg + 1)
+            if VERBOSE:
+                t = time()
+                print seq.name, seq.beta_rat,
+
+            seq.br_left = seq.beta_rat.ppf(0.025)
+            if VERBOSE:
+                print '$',
+            seq.br_median = seq.beta_rat.ppf(0.5)
+            if VERBOSE:
+                print '$',
+            seq.br_right = seq.beta_rat.ppf(0.975)
+            if VERBOSE:
+                print '$',
+
+            seq.hm_pos = seq.br_left >= br_left_cutoff
+            if VERBOSE:
+                print "Time:", time() - t
 
 
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
@@ -193,11 +215,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
             gross_writer.writerow(['cluster', 'sequence', 'column','context'])
 
-            by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
-                    'n_focus_pos', 'n_controls_pos', 'n_focus_neg', 'n_control_neg'] +
-                    # XXX - throw in a flag for putting this stuff in if so desired
+            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
                     #[HyperfreqAlignment.mut_col_name(trans) for trans in HyperfreqAlignment.MUT_PATTERNS] +
-                    sorted_contexts)
 
         else:
             sorted_contexts = contexts
@@ -209,7 +228,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
-            row = [seq.name, cluster, seq.pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
+            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_right, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
             # XXX - again, flaggify
             #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
@@ -221,6 +240,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
             row += [get_ctxt(ctxt) for ctxt in sorted_contexts]
             by_seq_writer.writerow(row)
+
 
 
     class Set:
@@ -253,13 +273,15 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                pvalue_cutoff=0.05, prob_diff=0.0):
+                br_left_cutoff=0.05):
+            # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff
             which for the decision procedure.  Note that if you wish to change the consensus_threshold used to
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
-                aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold, prob_diff=prob_diff)
+                aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold,
+                        br_left_cutoff=br_left_cutoff)
                 # XXX - Should come up with something smart here in case we don't compute the context
                 self.contexts.update(aln.mut_contexts)
 
@@ -273,10 +295,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
             gross_writer.writerow(['cluster', 'sequence', 'column', 'context'])
 
-            by_seq_writer.writerow(['sequence', 'cluster', 'pvalue', 'hm_pos',
-                    'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] +
+            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
                     #[HyperfreqAlignment.mut_col_name(mut) for mut in HyperfreqAlignment.MUT_PATTERNS] +
-                    sorted_contexts)
 
             for cluster in self.cluster_alns:
                 aln = self.cluster_alns[cluster]
