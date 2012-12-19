@@ -1,10 +1,11 @@
 from Bio import Align
 from Bio.Align import AlignInfo
-import warnings
 from beta_rat import BetaRat
+from time import time
+
+import warnings
 import csv
 import fisher
-from time import time
 
 VERBOSE = True
 
@@ -16,7 +17,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
-    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_right', 'hm_pos',
+    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_right', 'fisher_pvalue', 'hm_pos',
                     'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
@@ -134,8 +135,11 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.n_focus_neg = len(seq.focus_neg_indices)
             seq.n_control_neg = len(seq.control_neg_indices)
 
-            seq.beta_rat = BetaRat(seq.n_focus_pos + 1, seq.n_control_pos + 1, seq.n_focus_neg + 1,
-                    seq.n_control_neg + 1)
+            counts = [seq.n_focus_pos, seq.n_control_pos, seq.n_focus_neg, seq.n_control_neg]
+            w_prior = [c + 1 for c in counts]
+
+            seq.beta_rat = BetaRat(*w_prior)
+
             if VERBOSE:
                 t = time()
                 print seq.name, seq.beta_rat,
@@ -150,9 +154,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             if VERBOSE:
                 print '$',
 
-            seq.hm_pos = seq.br_left >= br_left_cutoff
             if VERBOSE:
                 print "Time:", time() - t
+
+            # Sadly, we are conceding to Fisher at the moment.
+            seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
+            seq.hm_pos = seq.fisher_pvalue < 0.05
+            #seq.hm_pos = seq.br_left >= br_left_cutoff
 
 
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
@@ -228,7 +236,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
-            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_right, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
+            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_right, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
             # XXX - again, flaggify
             #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
