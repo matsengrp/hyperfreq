@@ -1,4 +1,6 @@
 from Bio import Align
+from Bio import SeqRecord
+from Bio import Seq
 from Bio.Align import AlignInfo
 from beta_rat import BetaRat
 from time import time
@@ -7,7 +9,7 @@ import warnings
 import csv
 import fisher
 
-VERBOSE = True
+VERBOSE = False
 
 
 class HyperfreqAlignment(Align.MultipleSeqAlignment):
@@ -157,10 +159,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             if VERBOSE:
                 print "Time:", time() - t
 
-            # Sadly, we are conceding to Fisher at the moment.
             seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
-            seq.hm_pos = seq.fisher_pvalue < 0.05
-            #seq.hm_pos = seq.br_left >= br_left_cutoff
+            # Fisher be damned!
+            #seq.hm_pos = seq.fisher_pvalue < 0.05
+            seq.hm_pos = seq.br_left >= br_left_cutoff
 
 
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
@@ -179,7 +181,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     def split_hypermuts(self, hm_columns=None):
         '''Produce the hypermut positive and hypermut negative alignments'''
-        if hm_columns:
+        # Come one python... Is [] really false?
+        if hm_columns or hm_columns == []:
             hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
             hm_indices.sort()
         else:
@@ -191,16 +194,23 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq1 = self[:,soi:soi+1] if type(soi) == int else soi
             seq2 = self[:,i:i+1]
             return seq1 + seq2
-        self.hm_pos_aln = reduce(hyp_reducer, hm_indices)
 
-        self.hm_neg_aln = self[:,:hm_indices[0]]
-        n_hypermut = len(hm_indices)
-        for i in range(0, n_hypermut - 1):
-            start_i = hm_indices[i] + 1
-            stop_i = hm_indices[i+1]
-            self.hm_neg_aln += self[:,start_i:stop_i]
+        #import pdb; pdb.set_trace()
+        init = type(self)([SeqRecord.SeqRecord(Seq.Seq('')) for i in xrange(len(self))])
+        self.hm_pos_aln = reduce(hyp_reducer, hm_indices, init)
 
-        self.hm_neg_aln += self[:,hm_indices[-1]+1:]
+        if hm_indices:
+            self.hm_neg_aln = self[:,:hm_indices[0]]
+            n_hypermut = len(hm_indices)
+            for i in range(0, n_hypermut - 1):
+                start_i = hm_indices[i] + 1
+                stop_i = hm_indices[i+1]
+                self.hm_neg_aln += self[:,start_i:stop_i]
+
+            self.hm_neg_aln += self[:,hm_indices[-1]+1:]
+
+        else:
+            self.hm_neg_aln = self
 
         return self
 
