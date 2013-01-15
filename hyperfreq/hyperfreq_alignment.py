@@ -195,7 +195,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq2 = self[:,i:i+1]
             return seq1 + seq2
 
-        #import pdb; pdb.set_trace()
         init = type(self)([SeqRecord.SeqRecord(Seq.Seq('')) for i in xrange(len(self))])
         self.hm_pos_aln = reduce(hyp_reducer, hm_indices, init)
 
@@ -291,7 +290,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=0.05):
+                br_left_cutoff=1.8):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff

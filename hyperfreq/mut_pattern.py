@@ -68,23 +68,28 @@ class MutPattern(object):
 
 # XXX - would like to get these up and working with the context negation once that is fixed
 
-A3G_FOCUS = MutPattern(('G','A'), 'G[^C]')
+A3G_FOCUS = MutPattern(('G','A'), 'G')
 #A3G_CONTROL = A3G_FOCUS.context_negation()
-A3G_CONTROL = MutPattern(('G','A'), '[^G][ACTG]|GC')
+A3G_CONTROL = MutPattern(('G','A'), '[^G]')
 A3G = (A3G_FOCUS, A3G_CONTROL)
 
-A3F_FOCUS = MutPattern(('G','A'), '[AC][^C]')
+A3F1_FOCUS = MutPattern(('G','A'), 'A')
 #A3F_CONTROL = A3F_FOCUS.context_negation()
-A3F_CONTROL = MutPattern(('G','A'), '[^AC][ACTG]|[AC]C')
-A3F = (A3F_FOCUS, A3F_CONTROL)
+A3F1_CONTROL = MutPattern(('G','A'), '[^A]')
+A3F1 = (A3F1_FOCUS, A3F1_CONTROL)
+
+A3F2_FOCUS = MutPattern(('G','A'), '[AC]')
+#A3F_CONTROL = A3F_FOCUS.context_negation()
+A3F2_CONTROL = MutPattern(('G','A'), '[^AC]')
+A3F2 = (A3F2_FOCUS, A3F2_CONTROL)
 
 A3X1_FOCUS = MutPattern(('G','A'), '[GA]')
-A3X1_CONTROL = MutPattern(('G','A'), 'T')
+A3X1_CONTROL = MutPattern(('G','A'), '[CT]')
 A3X1 = (A3X1_FOCUS, A3X1_CONTROL)
 
 A3X2_FOCUS = MutPattern(('G','A'), '[^T]')
 A3X2_CONTROL = MutPattern(('G','A'), 'T')
 A3X2 = (A3X2_FOCUS, A3X2_CONTROL)
 
-pattern_map = {'a3g':A3G, 'a3f':A3F, 'a3x1':A3X1, 'a3x2':A3X2}
+pattern_map = {'a3g':A3G, 'a3f1':A3F1, 'a3f2':A3F2, 'a3x1':A3X1, 'a3x2':A3X2}
 
