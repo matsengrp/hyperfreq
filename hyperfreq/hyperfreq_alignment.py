@@ -285,7 +285,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=1.8):
+                br_left_cutoff=2.0):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff

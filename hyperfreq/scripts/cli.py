@@ -104,7 +104,7 @@ def setup_analyze_args(subparsers):
             help='csv string - what clusters do you want to use')
     analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='a3g',
             help="""Specify the type of apobec activity you would like to select for""")
-    analyze_args.add_argument('--br-left-cutoff', default=1.8, type=float,
+    analyze_args.add_argument('--br-left-cutoff', default=2.0, type=float,
             help="For hm_pos determination")
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
