@@ -19,7 +19,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
-    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_right', 'fisher_pvalue', 'hm_pos',
+    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'fisher_pvalue', 'hm_pos',
                     'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
@@ -146,13 +146,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 t = time()
                 print seq.name, seq.beta_rat,
 
-            seq.br_left = seq.beta_rat.ppf(0.025)
+            seq.br_left = seq.beta_rat.ppf(0.05)
             if VERBOSE:
                 print '$',
             seq.br_median = seq.beta_rat.ppf(0.5)
-            if VERBOSE:
-                print '$',
-            seq.br_right = seq.beta_rat.ppf(0.975)
             if VERBOSE:
                 print '$',
 
@@ -160,8 +157,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 print "Time:", time() - t
 
             seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
-            # Fisher be damned!
-            #seq.hm_pos = seq.fisher_pvalue < 0.05
             seq.hm_pos = seq.br_left >= br_left_cutoff
 
 
@@ -245,7 +240,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
-            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_right, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
+            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
             # XXX - again, flaggify
             #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
