@@ -103,7 +103,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
     def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-            br_left_cutoff=1.8, prob_diff=0.0):
+            br_left_cutoff=1.8, prob_diff=0.0, prior=(0.5, 1.0)):
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
@@ -138,9 +138,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.n_control_neg = len(seq.control_neg_indices)
 
             counts = [seq.n_focus_pos, seq.n_control_pos, seq.n_focus_neg, seq.n_control_neg]
-            w_prior = [c + 1 for c in counts]
-
-            seq.beta_rat = BetaRat(*w_prior)
+            seq.beta_rat = BetaRat(*counts, prior=prior)
 
             if VERBOSE:
                 t = time()
@@ -285,7 +283,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=2.0):
+                br_left_cutoff=2.0, prior=(0.5, 1.0)):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff
@@ -293,7 +291,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
                 aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold,
-                        br_left_cutoff=br_left_cutoff)
+                        br_left_cutoff=br_left_cutoff, prior=prior)
                 # XXX - Should come up with something smart here in case we don't compute the context
                 self.contexts.update(aln.mut_contexts)
 
