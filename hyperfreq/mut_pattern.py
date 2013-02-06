@@ -78,6 +78,17 @@ A3GI_FOCUS = MutPattern(('G','A'), '[^G]')
 A3GI_CONTROL = MutPattern(('G','A'), 'G')
 A3GI = (A3GI_FOCUS, A3GI_CONTROL)
 
+# More validation bleg
+CT_FOCUS = MutPattern(('C', 'T'), 'G')
+CT_CONTROL = MutPattern(('C', 'T'), '[^G]')
+CT = (CT_FOCUS, CT_CONTROL)
+
+# More validation bleg
+AG_FOCUS = MutPattern(('A', 'G'), 'G')
+AG_CONTROL = MutPattern(('A', 'G'), '[^G]')
+AG = (AG_FOCUS, AG_CONTROL)
+
+
 A3F1_FOCUS = MutPattern(('G','A'), 'A')
 #A3F_CONTROL = A3F_FOCUS.context_negation()
 A3F1_CONTROL = MutPattern(('G','A'), '[^A]')
@@ -96,5 +107,5 @@ A3X2_FOCUS = MutPattern(('G','A'), '[^T]')
 A3X2_CONTROL = MutPattern(('G','A'), 'T')
 A3X2 = (A3X2_FOCUS, A3X2_CONTROL)
 
-pattern_map = {'a3g':A3G, 'a3gi':A3GI, 'a3f1':A3F1, 'a3f2':A3F2, 'a3x1':A3X1, 'a3x2':A3X2}
+pattern_map = {'a3g':A3G, 'a3gi':A3GI, 'ag':AG, 'ct':CT, 'a3f1':A3F1, 'a3f2':A3F2, 'a3x1':A3X1, 'a3x2':A3X2}
 
