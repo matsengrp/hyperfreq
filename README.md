@@ -1,8 +1,6 @@
 # Hyperfreq
 
-This software is python based hypermutation analysis tool.
-
-Because, ya know, we like to get hyperfreqy...
+A Bayesian [APOBEC3G](http://en.wikipedia.org/wiki/APOBEC3G)-induced hypermutation analysis tool implemented in Python.
 
 ## CLI usage
 
