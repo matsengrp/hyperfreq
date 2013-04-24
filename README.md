@@ -1,4 +1,4 @@
-# Hyperfreq
+# hyperfreq
 
 A Bayesian [APOBEC3G](http://en.wikipedia.org/wiki/APOBEC3G)-induced hypermutation analysis tool implemented in Python.
 
