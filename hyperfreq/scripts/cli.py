@@ -9,6 +9,7 @@ from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
 from hyperfreq import mut_pattern
+from hyperfreq import hyperfreq_alignment
 
 
 def split(args):
@@ -80,6 +81,7 @@ def setup_common_args(subparser):
             help="Where to put files")
     subparser.add_argument('--prefix',
             help="Prefix for output files (extensions chosen automatically)")
+    subparser.add_argument('-v', '--verbose', action='store_true', default=False)
 
 
 def setup_analyze_args(subparsers):
@@ -138,6 +140,10 @@ def main():
     setup_split_args(subparsers)
 
     args = parser.parse_args()
+    
+    if args.verbose:
+        hyperfreq_alignment.VERBOSE = True
+
     args.func(args)
 
 
