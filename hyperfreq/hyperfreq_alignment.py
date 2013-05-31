@@ -188,7 +188,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq2 = self[:,i:i+1]
             return seq1 + seq2
 
-        init = type(self)([SeqRecord.SeqRecord(Seq.Seq('')) for i in xrange(len(self))])
+        init = type(self)([SeqRecord.SeqRecord(Seq.Seq(''), id=self[i].id) for i in xrange(len(self))])
         self.hm_pos_aln = reduce(hyp_reducer, hm_indices, init)
 
         if hm_indices:
