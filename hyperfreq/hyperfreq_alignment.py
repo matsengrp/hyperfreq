@@ -19,7 +19,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
-    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'fisher_pvalue', 'hm_pos',
+    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_max', 'fisher_pvalue', 'hm_pos',
                     'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
@@ -151,6 +151,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             if VERBOSE:
                 print '$',
 
+            seq.br_max = seq.beta_rat.pdf_max()
             if VERBOSE:
                 print "Time:", time() - t
 
@@ -238,7 +239,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
-            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
+            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_max, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
             # XXX - again, flaggify
             #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
