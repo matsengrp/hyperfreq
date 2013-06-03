@@ -140,7 +140,7 @@ def main():
     setup_split_args(subparsers)
 
     args = parser.parse_args()
-    
+
     if args.verbose:
         hyperfreq_alignment.VERBOSE = True
 
