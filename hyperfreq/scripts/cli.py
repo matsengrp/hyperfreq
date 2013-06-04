@@ -59,7 +59,8 @@ def analyze(args):
             reference_sequences=reference_sequences)
     pattern = mut_pattern.pattern_map[args.pattern]
     alignments.analyze_hypermuts(focus_pattern=pattern[0], control_pattern=pattern[1],
-            consensus_threshold=args.consensus_threshold, br_left_cutoff=args.br_left_cutoff)
+            consensus_threshold=args.consensus_threshold, br_left_cutoff=args.br_left_cutoff,
+            pos_quants_only=args.pos_quants_only)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
 
@@ -103,17 +104,24 @@ def setup_analyze_args(subparsers):
             for each cluster with cluster names as seq names (essentially in the format one would expect for
             --reference-sequences""")
     analyze_args.add_argument('--clusters', type=cs_arg,
-            help='csv string - what clusters do you want to use')
+            help='csv string - analysis will only be run for the specified clusters.')
+    # Need to rename patterns
     analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='a3g',
             help="""Specify the type of apobec activity you would like to select for""")
+    # Need to think about whether we're gonna be moving towards a pvalue sort of thing so that we can do FDR
     analyze_args.add_argument('--br-left-cutoff', default=2.0, type=float,
             help="For hm_pos determination")
+    # Should remove necessity for "all" and just take the first, if no matches (with warning?)
     analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
             sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
             ensure that there is a reference_sequence named 'all' in your reference-sequences alignment.
             Clusters for which no reference sequence is specified will be compared to a computed consensus
             sequence as reference.""")
+    # Should this be default true?
+    analyze_args.add_argument('--pos-quants-only', action="store_true", default=False,
+            help="""Only compute quantiles after finding that the CDF indicates the sequence will be positive.
+            This greatly reduces compute time, as quantiles take the longest to compute.""")
     analyze_args.set_defaults(prefix='hyperfreq_analysis')
     analyze_args.set_defaults(func=analyze)
 
