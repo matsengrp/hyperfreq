@@ -1,13 +1,12 @@
-# Hyperfreq
+# hyperfreq
 
-This software is python based hypermutation analysis tool.
+A Bayesian APOBEC3-induced hypermutation analysis tool implemented in Python.
 
-Because, ya know, we like to get hyperfreqy...
 
 ## CLI usage
 
 Analysis
-    
+
     # Simple anlysis comparing each sequence to a consensus sequence contructed from the entire alignment
     hyperfreq analyze alignment.fasta
 
@@ -17,13 +16,11 @@ Analysis
     # Specify the reference sequence(s) which you want each sequence to be compared to
     hyperfreq analyze alignment.fasta --reference-sequences ref_seqs.fasta
 
-    
 Splitting sequences for HM free alignments
-    
+
     # Given a csv file with a column named `site` which specifies hypermutated columns, cut those columns out
     # for an alignment wiht hypermutated columns removed
     hyperfreq split alignment.fasta hypermutated_columns.csv --column site
-
 
 For more thorough usage, install and type `hyperfreq -h` or `hyperfreq <subcmd> -h`.
 
@@ -32,13 +29,13 @@ For more thorough usage, install and type `hyperfreq -h` or `hyperfreq <subcmd> 
 
 If you want to write your own scripts, you can do so by importing the appropraite modules
 
-    import hyperfreq
     from hyperfreq import HyperfreqAlignment
     from Bio import SeqIO
 
     seqs = SeqIO.parse('some_file.fasta', 'fasta')
-    aln = hyperfreq.HyperfreqAlignment(seqs)
+    aln = HyperfreqAlignment(seqs)
 
+    # Actually run the analysis - get coffee
     aln.analyze_hypermuts()
 
     for seq in aln:
@@ -47,9 +44,11 @@ If you want to write your own scripts, you can do so by importing the approprait
     print "Total positive:", [seq.hm_pos for seq in aln].sum()
 
 
-## Building
+## Installing
 
-Download and run
+Most of the dependencies (`biopython`, `argparse`) should install automatically if you use pip for installation.
+You will, however, need to manually install [betarat](https://github.com/fhcrc/betarat).
+Once this has been done, you can download this package to any convenient location and run
 
     python setup.py install
 
