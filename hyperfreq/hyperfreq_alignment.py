@@ -19,11 +19,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
+    # For keeping output code clean. May need to move this to an abstraction layer to make more flexible.
     BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_max', 'fisher_pvalue', 'hm_pos',
                     'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
     def context_sorter(c1, c2):
+        """ Sorts contexts first by length, then by actual string content. """
         l1, l2 = len(c1), len(c2)
         if l1 != l2:
             return l1 - l2
@@ -32,18 +34,24 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     @staticmethod
     def mut_col_name(mut_tuple):
+        """ Little helper function for making pretty mutation pattern names."""
         return "{}_to_{}".format(*mut_tuple)
 
 
     def __res_ratio__(self, residue, index):
+        """ Finds the fraction of sequences in the alignment that, at the given index/column, have the
+        specified residue. """
         return float(self[:,index].count(residue)) / float(self.__len__())
 
     def __res_sites__(self, residue, consensus_threshold=0.5):
+        """ Finds the indices of sites in the alignment where the specified residue is at least as abundant as
+        the specified consensus_threshold."""
         aln_length = self.get_alignment_length()
         return [i for i in xrange(0, aln_length) if
                 self.__res_ratio__(residue,i) >= consensus_threshold]
 
     def __consensus__(self, consensus_threshold):
+        """Returns a Bio.Align.AlignInfo dumb_consensus of this alignment at the given threshold. """
         aln_info = AlignInfo.SummaryInfo(self)
         return aln_info.dumb_consensus(threshold=consensus_threshold)
 
