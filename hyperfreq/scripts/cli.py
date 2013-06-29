@@ -106,8 +106,10 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--clusters', type=cs_arg,
             help='csv string - analysis will only be run for the specified clusters.')
     # Need to rename patterns
-    analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='a3g',
-            help="""Specify the type of apobec activity you would like to select for""")
+    analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='gg',
+            help="""Specify the type of apobec activity you would like to select for. For example gg specifies
+            a focus pattern of GG to AG, characteristic of APOBEC3G activity. M, R and V correspond to IUPAC
+            codes.""")
     # Need to think about whether we're gonna be moving towards a pvalue sort of thing so that we can do FDR
     analyze_args.add_argument('--br-left-cutoff', default=2.0, type=float,
             help="For hm_pos determination")

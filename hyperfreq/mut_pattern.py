@@ -64,48 +64,28 @@ class MutPattern(object):
 
     def neg_indices(self, seq, ref_indices):
         return [i for i in self.mut_neg_indices(seq) if ref_indices.count(i) > 0]
-    
-
-# XXX - would like to get these up and working with the context negation once that is fixed
-
-A3G_FOCUS = MutPattern(('G','A'), 'G')
-#A3G_CONTROL = A3G_FOCUS.context_negation()
-A3G_CONTROL = MutPattern(('G','A'), '[^G]')
-A3G = (A3G_FOCUS, A3G_CONTROL)
-
-# 3g inverse - for validation
-A3GI_FOCUS = MutPattern(('G','A'), '[^G]')
-A3GI_CONTROL = MutPattern(('G','A'), 'G')
-A3GI = (A3GI_FOCUS, A3GI_CONTROL)
-
-# More validation bleg
-CT_FOCUS = MutPattern(('C', 'T'), 'G')
-CT_CONTROL = MutPattern(('C', 'T'), '[^G]')
-CT = (CT_FOCUS, CT_CONTROL)
-
-# More validation bleg
-AG_FOCUS = MutPattern(('A', 'G'), 'G')
-AG_CONTROL = MutPattern(('A', 'G'), '[^G]')
-AG = (AG_FOCUS, AG_CONTROL)
 
 
-A3F1_FOCUS = MutPattern(('G','A'), 'A')
-#A3F_CONTROL = A3F_FOCUS.context_negation()
-A3F1_CONTROL = MutPattern(('G','A'), '[^A]')
-A3F1 = (A3F1_FOCUS, A3F1_CONTROL)
+GG_FOCUS = MutPattern(('G','A'), 'G')
+GG_CONTROL = MutPattern(('G','A'), '[^G]')
+GG = (GG_FOCUS, GG_CONTROL)
 
-A3F2_FOCUS = MutPattern(('G','A'), '[AC]')
-#A3F_CONTROL = A3F_FOCUS.context_negation()
-A3F2_CONTROL = MutPattern(('G','A'), '[^AC]')
-A3F2 = (A3F2_FOCUS, A3F2_CONTROL)
+GA_FOCUS = MutPattern(('G','A'), 'A')
+GA_CONTROL = MutPattern(('G','A'), '[^A]')
+GA = (GA_FOCUS, GA_CONTROL)
 
-A3X1_FOCUS = MutPattern(('G','A'), '[GA]')
-A3X1_CONTROL = MutPattern(('G','A'), '[CT]')
-A3X1 = (A3X1_FOCUS, A3X1_CONTROL)
+GM_FOCUS = MutPattern(('G','A'), '[AC]')
+GM_CONTROL = MutPattern(('G','A'), '[^AC]')
+GM = (GM_FOCUS, GM_CONTROL)
 
-A3X2_FOCUS = MutPattern(('G','A'), '[^T]')
-A3X2_CONTROL = MutPattern(('G','A'), 'T')
-A3X2 = (A3X2_FOCUS, A3X2_CONTROL)
+GR_FOCUS = MutPattern(('G','A'), '[GA]')
+GR_CONTROL = MutPattern(('G','A'), '[CT]')
+GR = (GR_FOCUS, GR_CONTROL)
 
-pattern_map = {'a3g':A3G, 'a3gi':A3GI, 'ag':AG, 'ct':CT, 'a3f1':A3F1, 'a3f2':A3F2, 'a3x1':A3X1, 'a3x2':A3X2}
+GV_FOCUS = MutPattern(('G','A'), '[^T]')
+GV_CONTROL = MutPattern(('G','A'), 'T')
+GV = (GV_FOCUS, GV_CONTROL)
+
+pattern_map = dict(gg=GG, ga=GA, gm=GM, gr=GR, gv=GV)
+
 
