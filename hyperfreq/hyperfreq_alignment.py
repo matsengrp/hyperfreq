@@ -1,8 +1,6 @@
-from Bio import Align
-from Bio import SeqRecord
-from Bio import Seq
+from Bio import Align, SeqRecord, Seq
 from Bio.Align import AlignInfo
-from beta_rat import BetaRat
+from betarat import BetaRat
 from time import time
 
 import warnings
