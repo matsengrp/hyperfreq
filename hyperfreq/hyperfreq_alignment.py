@@ -19,11 +19,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
 
-    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'fisher_pvalue', 'hm_pos',
+    # For keeping output code clean. May need to move this to an abstraction layer to make more flexible.
+    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_max', 'fisher_pvalue', 'hm_pos',
                     'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
     def context_sorter(c1, c2):
+        """ Sorts contexts first by length, then by actual string content. """
         l1, l2 = len(c1), len(c2)
         if l1 != l2:
             return l1 - l2
@@ -32,18 +34,24 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     @staticmethod
     def mut_col_name(mut_tuple):
+        """ Little helper function for making pretty mutation pattern names."""
         return "{}_to_{}".format(*mut_tuple)
 
 
     def __res_ratio__(self, residue, index):
+        """ Finds the fraction of sequences in the alignment that, at the given index/column, have the
+        specified residue. """
         return float(self[:,index].count(residue)) / float(self.__len__())
 
     def __res_sites__(self, residue, consensus_threshold=0.5):
+        """ Finds the indices of sites in the alignment where the specified residue is at least as abundant as
+        the specified consensus_threshold."""
         aln_length = self.get_alignment_length()
         return [i for i in xrange(0, aln_length) if
                 self.__res_ratio__(residue,i) >= consensus_threshold]
 
     def __consensus__(self, consensus_threshold):
+        """Returns a Bio.Align.AlignInfo dumb_consensus of this alignment at the given threshold. """
         aln_info = AlignInfo.SummaryInfo(self)
         return aln_info.dumb_consensus(threshold=consensus_threshold)
 
@@ -101,9 +109,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 except KeyError:
                     seq.contexts[self.context(i)] = 1
 
-
     def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-            br_left_cutoff=1.8, prob_diff=0.0):
+            br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=False):
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
@@ -138,26 +145,27 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq.n_control_neg = len(seq.control_neg_indices)
 
             counts = [seq.n_focus_pos, seq.n_control_pos, seq.n_focus_neg, seq.n_control_neg]
-            w_prior = [c + 1 for c in counts]
-
-            seq.beta_rat = BetaRat(*w_prior)
+            seq.beta_rat = BetaRat(*counts, prior=prior)
 
             if VERBOSE:
                 t = time()
                 print seq.name, seq.beta_rat,
 
-            seq.br_left = seq.beta_rat.ppf(0.05)
-            if VERBOSE:
-                print '$',
-            seq.br_median = seq.beta_rat.ppf(0.5)
-            if VERBOSE:
-                print '$',
+            seq.hm_pos = seq.beta_rat.cdf(br_left_cutoff) < significance_level
+            # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
+            if pos_quants_only and not seq.hm_pos:
+                seq.br_left = None
+                seq.br_median = None
+            else:
+                seq.br_left = seq.beta_rat.ppf(0.05)
+                seq.br_median = seq.beta_rat.ppf(0.5)
+
+            seq.br_max = seq.beta_rat.pdf_max()
 
             if VERBOSE:
                 print "Time:", time() - t
 
             seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
-            seq.hm_pos = seq.br_left >= br_left_cutoff
 
 
         self.hm_pos_seqs = [s for s in self if s.hm_pos]
@@ -190,7 +198,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             seq2 = self[:,i:i+1]
             return seq1 + seq2
 
-        init = type(self)([SeqRecord.SeqRecord(Seq.Seq('')) for i in xrange(len(self))])
+        init = type(self)([SeqRecord.SeqRecord(Seq.Seq(''), id=self[i].id) for i in xrange(len(self))])
         self.hm_pos_aln = reduce(hyp_reducer, hm_indices, init)
 
         if hm_indices:
@@ -240,7 +248,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
-            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
+            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_max, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
             # XXX - again, flaggify
             #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
@@ -285,7 +293,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=2.0):
+                br_left_cutoff=2.0, prior=(0.5, 1.0), pos_quants_only=False):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff
@@ -293,7 +301,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
                 aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold,
-                        br_left_cutoff=br_left_cutoff)
+                        br_left_cutoff=br_left_cutoff, prior=prior, pos_quants_only=pos_quants_only)
                 # XXX - Should come up with something smart here in case we don't compute the context
                 self.contexts.update(aln.mut_contexts)
 
