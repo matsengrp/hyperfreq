@@ -3,13 +3,11 @@
 import argparse
 import csv
 from os import path
-from Bio import AlignIO
-from Bio import SeqIO
+from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
-from hyperfreq import mut_pattern
-from hyperfreq import hyperfreq_alignment
+from hyperfreq import mut_pattern, hyperfreq_alignment
 
 
 def split(args):
