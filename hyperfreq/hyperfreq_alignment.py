@@ -107,8 +107,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 except KeyError:
                     seq.contexts[self.context(i)] = 1
 
-    def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
             br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=False):
+    def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
@@ -290,8 +290,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             self.contexts = set()
 
 
-        def analyze_hypermuts(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=2.0, prior=(0.5, 1.0), pos_quants_only=False):
+        def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
+                br_left_cutoff=2.0, prior=(0.5, 1.0), pos_quants_only=True):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff

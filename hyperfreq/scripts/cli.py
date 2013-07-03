@@ -56,8 +56,9 @@ def analyze(args):
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, args.clusters,
             reference_sequences=reference_sequences)
     pattern = mut_pattern.pattern_map[args.pattern]
-    alignments.analyze_hypermuts(focus_pattern=pattern[0], control_pattern=pattern[1],
+    alignments.analyze(focus_pattern=pattern[0], control_pattern=pattern[1],
             consensus_threshold=args.consensus_threshold, br_left_cutoff=args.br_left_cutoff,
+            quants=args.quants,
             pos_quants_only=args.pos_quants_only)
 
     alignments.write_analysis(gross_handle, by_seq_handle)
