@@ -7,7 +7,7 @@ from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
-from hyperfreq import mut_pattern, hyperfreq_alignment
+from hyperfreq import mut_pattern, hyperfreq_alignment, __version__
 
 
 def split(args):
@@ -76,11 +76,39 @@ def analyze(args):
 def setup_common_args(subparser):
     subparser.add_argument('alignment', type=argparse.FileType('r'),
             help="Sequence alignment on which to operate")
-    subparser.add_argument('--out-dir', default='.',
+    subparser.add_argument('-o', '--out-dir', default='.',
             help="Where to put files")
-    subparser.add_argument('--prefix',
+    subparser.add_argument('-P', '--prefix',
             help="Prefix for output files (extensions chosen automatically)")
     subparser.add_argument('-v', '--verbose', action='store_true', default=False)
+
+
+class QuantAction(argparse.Action):
+    """ This class is for doing some slick command line magick with specification of what quantiles to compute
+    and how """
+    # XXX - review: This solution to the problem leaves q around in namespace, and admittedly is a little
+    # weird. Will have to poll thoughts
+    default_quants = [0.05]
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if values:
+            namespace.quants = values
+        else:
+            namespace.quants = parser.get_default('q')
+            parser.set_defaults(q=None)
+        namespace.pos_quants_only = False if option_string == '-q' else False
+
+    @classmethod
+    def register(cls, parser):
+        """ Adds the -q/-Q argument to the parser, and sets stuff up so that the results can be accessed from
+        the quants namespace, as well as pos_quants_only """
+        parser.add_argument('-q', '-Q', nargs='*', type=float, action=cls,
+                help="""Compute quantiles. If specified with no args, default quantiles are %(default)s. If
+                specified using -q, quantiles are only computed for positive sequences to save time (quantiles
+                take a while). If -Q is used, specified quantiles are computed for all sequences.""")
+        parser.set_defaults(q=cls.default_quants)
+        parser.set_defaults(quants=None)
+        parser.set_defaults(pos_quants_only=True)
 
 
 def setup_analyze_args(subparsers):
@@ -90,21 +118,21 @@ def setup_analyze_args(subparsers):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             description='Analyze alignment for evidence of hypermuation')
     setup_common_args(analyze_args)
-    analyze_args.add_argument('--cluster-map', type=argparse.FileType('r'),
+    analyze_args.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
             help="CSV mapping sequences to clusters")
     analyze_args.add_argument('--cluster-col', default='cluster_id',
             help="Column in cluster map file which you would like to use for cluster specification")
     analyze_args.add_argument('--consensus-threshold', type=float,
             help="""As ratio decimal -- used for computation consensus sequences as reference sequences for
             HM evaluation when reference sequences are not explicity specified in --reference-sequences""", default=0.5)
-    analyze_args.add_argument('--write-references', default=False, action='store_true',
+    analyze_args.add_argument('-R', '--write-references', default=False, action='store_true',
             help="""Writes to a file the reference sequences (consensus or otherwise) used for HM evalutation
             for each cluster with cluster names as seq names (essentially in the format one would expect for
             --reference-sequences""")
     analyze_args.add_argument('--clusters', type=cs_arg,
             help='csv string - analysis will only be run for the specified clusters.')
     # Need to rename patterns
-    analyze_args.add_argument('--pattern', choices=mut_pattern.pattern_map.keys(), default='gg',
+    analyze_args.add_argument('-p', '--pattern', choices=mut_pattern.pattern_map.keys(), default='gg',
             help="""Specify the type of apobec activity you would like to select for. For example gg specifies
             a focus pattern of GG to AG, characteristic of APOBEC3G activity. M, R and V correspond to IUPAC
             codes.""")
@@ -112,7 +140,7 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--br-left-cutoff', default=2.0, type=float,
             help="For hm_pos determination")
     # Should remove necessity for "all" and just take the first, if no matches (with warning?)
-    analyze_args.add_argument('--reference-sequences', type=argparse.FileType('r'),
+    analyze_args.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
             sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
             ensure that there is a reference_sequence named 'all' in your reference-sequences alignment.
@@ -139,9 +167,10 @@ def setup_split_args(subparsers):
 
 
 def main():
-    parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(prog='hyperfreq',
             description="""Hypermutation analysis software using Sekhon test""",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
     subparsers = parser.add_subparsers(title='subcommands', help='additional help')
 
     setup_analyze_args(subparsers)
