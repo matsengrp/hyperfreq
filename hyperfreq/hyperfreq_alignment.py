@@ -80,33 +80,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+1])
 
 
-    def single_nt_mut_analysis(self):
-        def findall(ref_seq, residue):
-            return [i for i in range(0, len(self.reference_sequence)) if
-                    self.reference_sequence[i] == residue]
-
-        ref_seq_indices = {}
-        #if type(self.reference_sequence) == 
-        for residue in HyperfreqAlignment.RESIDUES:
-            ref_seq_indices[residue] = findall(self.reference_sequence, residue)
-
-        for seq in self:
-            seq.mut_indices = {}
-            for cons_res in ref_seq_indices.keys():
-                for seq_res in HyperfreqAlignment.RESIDUES:
-                    # XXX - interesting. this could be a good place to try and catch people tring to use a
-                    # sequence of the wrong length for a reference sequence. Leads to IndexError in seq[i] if
-                    # ref is longer than it should be
-                    seq.mut_indices[(cons_res, seq_res)] = [i for i in ref_seq_indices[cons_res] if
-                            seq[i] == seq_res]
-
-            seq.contexts = {}
-            for i in seq.mut_indices[self.focus_pattern.mutation]:
-                try:
-                    seq.contexts[self.context(i)] += 1
-                except KeyError:
-                    seq.contexts[self.context(i)] = 1
-
             br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=False):
     def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
         """This is where all of the grunt work happens; running through the alignment to find
@@ -126,11 +99,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         focus_ref_indices = self.focus_pattern.ref_match_indices(self.reference_sequence)
         control_ref_indices = self.control_pattern.ref_match_indices(self.reference_sequence)
         
-        # XXX - Needed for doing the context; be aware that taking this out would lead to an error later where
-        # seq.context is comiled for other analysis. Could fix this at some point if we want to make this
-        # optional
-        self.single_nt_mut_analysis()
-
         for seq in self:
             seq.focus_pos_indices = self.focus_pattern.pos_indices(seq, focus_ref_indices)
             seq.focus_neg_indices = self.focus_pattern.neg_indices(seq, focus_ref_indices)
@@ -165,24 +133,11 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
             seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
 
-
-        self.hm_pos_seqs = [s for s in self if s.hm_pos]
-        self.hm_pos_aln = Align.MultipleSeqAlignment(self.hm_pos_seqs)
-        self.hm_pos_indices = list(set([i for s in self.hm_pos_seqs for i in s.focus_pos_indices]))
-        self.hm_pos_indices.sort()
-        # That is, the 1-based index positions
-        self.mut_columns = [i+1 for i in self.hm_pos_indices]
-        self.mut_contexts = [self.context(i) for i in self.hm_pos_indices]
-        # XXX - don't seem to have actually been using this. Probably just wanted it for stats. May throw back
-        # in later
-        #self.muts_per_site = [self.mut_aln[:,i].count(self.focus_pattern.mutation[1]) for i in self.hm_pos_indices]
-
         return self
 
 
     def split_hypermuts(self, hm_columns=None):
         '''Produce the hypermut positive and hypermut negative alignments'''
-        # Come one python... Is [] really false?
         if hm_columns or hm_columns == []:
             hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
             hm_indices.sort()
@@ -229,34 +184,21 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             by_seq_writer = csv.writer(by_seq_handle)
 
         if header:
-            sorted_contexts = list(set(self.contexts)) if self.contexts else []
-            sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
             gross_writer.writerow(['cluster', 'sequence', 'column','context'])
-
-            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
-                    #[HyperfreqAlignment.mut_col_name(trans) for trans in HyperfreqAlignment.MUT_PATTERNS] +
-
-        else:
-            sorted_contexts = contexts
+            # XXX - make sure we fix column names up to be dynamic for quants, etc
+            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES)
 
         for seq in self:
             # Gross writer now does by seq
             if seq.hm_pos:
+                # XXX - going to have to make sure that focus_pos_indices can come from somewhere here
                 for i in seq.focus_pos_indices:
                     row = [cluster, seq.name, i+1, self.context(i)]
                     gross_writer.writerow(row)
 
             row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_max, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
                     seq.n_focus_neg, seq.n_control_neg]
-            # XXX - again, flaggify
-            #row += [len(seq.mut_indices[trans]) for trans in HyperfreqAlignment.MUT_PATTERNS]
-            def get_ctxt(c):
-                try:
-                    return seq.contexts[c]
-                except KeyError:
-                    return 0
 
-            row += [get_ctxt(ctxt) for ctxt in sorted_contexts]
             by_seq_writer.writerow(row)
 
 
@@ -300,8 +242,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             for aln in self.cluster_alns.values():
                 aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold,
                         br_left_cutoff=br_left_cutoff, prior=prior, pos_quants_only=pos_quants_only)
-                # XXX - Should come up with something smart here in case we don't compute the context
-                self.contexts.update(aln.mut_contexts)
 
 
         def write_analysis(self, gross_handle, by_seq_handle):
