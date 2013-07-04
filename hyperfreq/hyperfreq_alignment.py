@@ -253,7 +253,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             which for the decision procedure.  Note that if you wish to change the consensus_threshold used to
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
-                aln.analyze_hypermuts(focus_pattern, control_pattern, consensus_threshold,
+                aln.analyze(focus_pattern, control_pattern, consensus_threshold,
                         br_left_cutoff=br_left_cutoff, prior=prior, pos_quants_only=pos_quants_only)
 
 
