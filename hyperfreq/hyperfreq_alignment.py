@@ -80,8 +80,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+1])
 
 
-            br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=False):
-    def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
+    def analyze(self, mutation_pattern, consensus_threshold=None,
+            br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=True, quants=None):
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
@@ -94,46 +94,59 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             self.consensus_threshold = consensus_threshold
             self.reference_sequence = self.__consensus__(consensus_threshold)
 
-        self.focus_pattern, self.control_pattern = focus_pattern, control_pattern
+        focus_pattern, control_pattern = mutation_pattern
 
-        focus_ref_indices = self.focus_pattern.ref_match_indices(self.reference_sequence)
-        control_ref_indices = self.control_pattern.ref_match_indices(self.reference_sequence)
-        
+        focus_ref_indices = focus_pattern.ref_match_indices(self.reference_sequence)
+        control_ref_indices = control_pattern.ref_match_indices(self.reference_sequence)
+
         for seq in self:
-            seq.focus_pos_indices = self.focus_pattern.pos_indices(seq, focus_ref_indices)
-            seq.focus_neg_indices = self.focus_pattern.neg_indices(seq, focus_ref_indices)
-            seq.control_pos_indices = self.control_pattern.pos_indices(seq, control_ref_indices)
-            seq.control_neg_indices = self.control_pattern.neg_indices(seq, control_ref_indices)
+            hm_data = dict()
 
-            seq.n_focus_pos = len(seq.focus_pos_indices)
-            seq.n_control_pos = len(seq.control_pos_indices)
-            seq.n_focus_neg = len(seq.focus_neg_indices)
-            seq.n_control_neg = len(seq.control_neg_indices)
+            focus_pos_indices = focus_pattern.pos_indices(seq, focus_ref_indices)
 
-            counts = [seq.n_focus_pos, seq.n_control_pos, seq.n_focus_neg, seq.n_control_neg]
-            seq.beta_rat = BetaRat(*counts, prior=prior)
+            focus_pos = len(focus_pos_indices)
+            focus_neg = len(focus_pattern.neg_indices(seq, focus_ref_indices))
+            control_pos = len(control_pattern.pos_indices(seq, control_ref_indices))
+            control_neg = len(control_pattern.neg_indices(seq, control_ref_indices))
+
+            counts = [focus_pos, control_pos, focus_neg, control_neg]
+            beta_rat = BetaRat(*counts, prior=prior)
 
             if VERBOSE:
                 t = time()
-                print seq.name, seq.beta_rat,
+                print "On sequence", seq.name, beta_rat,
+            
+            # XXX - need to make name cdf1 reflect chosen br_left_cutoff (or whatever we end up callig it)
+            cdf1 = beta_rat.cdf(br_left_cutoff)
+            hm_pos = cdf1 < significance_level
+            br_map = beta_rat.map()
 
-            seq.hm_pos = seq.beta_rat.cdf(br_left_cutoff) < significance_level
+            fisher_pvalue = fisher.pvalue(*counts).right_tail
+
+            hm_data = dict(
+                    sequence=seq.name,
+                    hm_pos=hm_pos,
+                    cdf1=cdf1,
+                    map=br_map,
+                    fisher=fisher_pvalue,
+                    focus_pos=focus_pos,
+                    focus_neg=focus_neg,
+                    control_pos=control_pos,
+                    control_neg=control_neg)
+
             # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
-            if pos_quants_only and not seq.hm_pos:
-                seq.br_left = None
-                seq.br_median = None
-            else:
-                seq.br_left = seq.beta_rat.ppf(0.05)
-                seq.br_median = seq.beta_rat.ppf(0.5)
+            if hm_pos or not pos_quants_only:
+                for quant in quants:
+                    hm_data['q_{}'.format(quant)] = beta_rat.ppf(quant)
 
-            seq.br_max = seq.beta_rat.pdf_max()
+            #for cdf in cdfs:
+                #hm_data['cdf_{}'.format(quant)] = beta_rat.cdf(quant)
 
             if VERBOSE:
                 print "Time:", time() - t
 
-            seq.fisher_pvalue = fisher.pvalue(*counts).right_tail
+            yield hm_data
 
-        return self
 
 
     def split_hypermuts(self, hm_columns=None):
