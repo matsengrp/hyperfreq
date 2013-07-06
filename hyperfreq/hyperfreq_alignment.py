@@ -10,6 +10,25 @@ import fisher
 VERBOSE = False
 
 
+"Analysis defaults, across entire code base (including cli)"
+analysis_defaults = dict(consensus_threshold=None,
+        br_left_cutoff=1.8,
+        significance_level=0.05,
+        prior=(0.5, 1.0),
+        pos_quants_only=True,
+        quants=[],
+        cdfs=[])
+
+def apply_analysis_defaults(func):
+    "Decorator for applying analysis defaults to various analysis functions"
+    def decorated(*args, **kw_args):
+        new_kw_args = analysis_defaults.copy()
+        new_kw_args.update(kw_args)
+        return func(*args, **new_kw_args)
+    decorated.func_name = func.func_name
+    return decorated
+
+
 class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     RESIDUES = ['A', 'C', 'T', 'G']
@@ -80,76 +99,94 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+1])
 
 
-    def analyze(self, mutation_pattern, consensus_threshold=None,
-            br_left_cutoff=1.8, significance_level=0.05, prior=(0.5, 1.0), pos_quants_only=True, quants=None):
+    @apply_analysis_defaults
+    def analyze(self, mutation_pattern, **kw_args):
         """This is where all of the grunt work happens; running through the alignment to find
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
         """
-
         # Want to make it possible to override the consensus_threshold established on initialization. Making
         # sure that it's created on initialization first though, makes things safter, as you know there is
         # always a reference seq
+        consensus_threshold = kw_args['consensus_threshold']
         if consensus_threshold and consensus_threshold != self.consensus_threshold:
             self.consensus_threshold = consensus_threshold
             self.reference_sequence = self.__consensus__(consensus_threshold)
 
         focus_pattern, control_pattern = mutation_pattern
 
-        focus_ref_indices = focus_pattern.ref_match_indices(self.reference_sequence)
-        control_ref_indices = control_pattern.ref_match_indices(self.reference_sequence)
+        focus_indices = focus_pattern.ref_match_indices(self.reference_sequence)
+        control_indices = control_pattern.ref_match_indices(self.reference_sequence)
 
         for seq in self:
-            hm_data = dict()
-
-            focus_pos_indices = focus_pattern.pos_indices(seq, focus_ref_indices)
-
-            focus_pos = len(focus_pos_indices)
-            focus_neg = len(focus_pattern.neg_indices(seq, focus_ref_indices))
-            control_pos = len(control_pattern.pos_indices(seq, control_ref_indices))
-            control_neg = len(control_pattern.neg_indices(seq, control_ref_indices))
-
-            counts = [focus_pos, control_pos, focus_neg, control_neg]
-            beta_rat = BetaRat(*counts, prior=prior)
-
-            if VERBOSE:
-                t = time()
-                print "On sequence", seq.name, beta_rat,
-            
-            # XXX - need to make name cdf1 reflect chosen br_left_cutoff (or whatever we end up callig it)
-            cdf1 = beta_rat.cdf(br_left_cutoff)
-            hm_pos = cdf1 < significance_level
-            br_map = beta_rat.map()
-
-            fisher_pvalue = fisher.pvalue(*counts).right_tail
-
-            hm_data = dict(
-                    sequence=seq.name,
-                    hm_pos=hm_pos,
-                    cdf1=cdf1,
-                    map=br_map,
-                    fisher=fisher_pvalue,
-                    focus_pos=focus_pos,
-                    focus_neg=focus_neg,
-                    control_pos=control_pos,
-                    control_neg=control_neg)
-
-            # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
-            if hm_pos or not pos_quants_only:
-                for quant in quants:
-                    hm_data['q_{}'.format(quant)] = beta_rat.ppf(quant)
-
-            #for cdf in cdfs:
-                #hm_data['cdf_{}'.format(quant)] = beta_rat.cdf(quant)
-
-            if VERBOSE:
-                print "Time:", time() - t
-
-            yield hm_data
+            yield self.analyze_sequence(seq, mutation_pattern, focus_indices, control_indices, **kw_args)
 
 
+    @apply_analysis_defaults
+    def analyze_sequence(self, seq, mutation_pattern, focus_indices=None, control_indices=None, **kw_args):
+        """This function does the work of hypermutation analysis on a sequence by sequence basis. Focus and
+        control indices can be computed and passed in once for efficiency. """
+        focus_pattern, control_pattern = mutation_pattern
 
     def split_hypermuts(self, hm_columns=None):
+        # This makes it possible to not pass in focus indices and control indices if lazy - probably doesn't improve performance
+        # that much so may just set to always do this in time.
+        focus_indices = focus_indices if focus_indices else focus_pattern.ref_match_indices(self.reference_sequence)
+        control_indices = control_indices if control_indices else control_pattern.ref_match_indices(self.reference_sequence)
+
+        # Compute contingency table
+        focus_pos_indices = focus_pattern.pos_indices(seq, focus_indices)
+        focus_pos = len(focus_pos_indices)
+        focus_neg = len(focus_pattern.neg_indices(seq, focus_indices))
+        control_pos = len(control_pattern.pos_indices(seq, control_indices))
+        control_neg = len(control_pattern.neg_indices(seq, control_indices))
+
+        counts = [focus_pos, control_pos, focus_neg, control_neg]
+        beta_rat = BetaRat(*counts, prior=kw_args['prior'])
+
+        if VERBOSE:
+            t = time()
+            print "On sequence", seq.name, beta_rat
+
+        # Start running stats
+        # XXX - need to make name cdf1 reflect chosen br_left_cutoff (or whatever we end up callig it)
+        cdf1 = beta_rat.cdf(kw_args['br_left_cutoff'])
+        hm_pos = cdf1 < kw_args['significance_level']
+        br_map = beta_rat.map()
+
+        fisher_pvalue = fisher.pvalue(*counts).right_tail
+
+        mut_columns = [i + 1 for i in focus_pos_indices] if hm_pos else []
+
+        # Construct the dict we'll be returning for this sequence and pattern (will need to add cdfs and so on
+        # to it)
+        hm_data = dict(
+                sequence=seq.name,
+                hm_pos=hm_pos,
+                cdf1=cdf1,
+                map=br_map,
+                fisher=fisher_pvalue,
+                focus_pos=focus_pos,
+                focus_neg=focus_neg,
+                control_pos=control_pos,
+                control_neg=control_neg,
+                mut_columns=mut_columns)
+
+        # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
+        if hm_pos or not kw_args['pos_quants_only']:
+            for quant in kw_args['quants']:
+                hm_data['q_{}'.format(quant)] = beta_rat.ppf(quant)
+
+        # Always compute whatever cdfs requested, since they are fairly cheap to process
+        for cdf in kw_args['cdfs']:
+            hm_data['cdf_{}'.format(cdf)] = beta_rat.cdf(cdf)
+
+        if VERBOSE:
+            print "Time:", time() - t
+
+        return hm_data
+
+
         '''Produce the hypermut positive and hypermut negative alignments'''
         if hm_columns or hm_columns == []:
             hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
@@ -245,6 +282,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             self.contexts = set()
 
 
+        @apply_analysis_defaults
         def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
                 br_left_cutoff=2.0, prior=(0.5, 1.0), pos_quants_only=True):
             # XXX - Update doc
