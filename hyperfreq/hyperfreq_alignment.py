@@ -246,15 +246,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         @apply_analysis_defaults
-        def analyze(self, focus_pattern, control_pattern, consensus_threshold=None,
-                br_left_cutoff=2.0, prior=(0.5, 1.0), pos_quants_only=True):
+        def analyze(self, pattern, **kw_args):
             # XXX - Update doc
             """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
             transition, the control transition here, and well as the probability difference and pvalue cutoff
             which for the decision procedure.  Note that if you wish to change the consensus_threshold used to
             instantiate the Set (or override the reference_sequences), that can be done here."""
             for aln in self.cluster_alns.values():
-                aln.analyze(focus_pattern, control_pattern, consensus_threshold,
-                        br_left_cutoff=br_left_cutoff, prior=prior, pos_quants_only=pos_quants_only)
+                aln.analyze(pattern, **kw_args)
 
 
