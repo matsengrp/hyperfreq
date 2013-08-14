@@ -168,9 +168,12 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 mut_columns=mut_columns)
 
         # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
-        if hm_pos or not kw_args['pos_quants_only']:
-            for quant in kw_args['quants']:
-                hm_data['q_{}'.format(quant)] = beta_rat.ppf(quant)
+        for quant in kw_args['quants']:
+            key = 'q_{}'.format(quant)
+            if hm_pos or not kw_args['pos_quants_only']:
+                hm_data[key] = beta_rat.ppf(quant)
+            else:
+                hm_data[key] = None
 
         # Always compute whatever cdfs requested, since they are fairly cheap to process
         for cdf in kw_args['cdfs']:
