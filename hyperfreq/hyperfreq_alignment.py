@@ -123,7 +123,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         control indices can be computed and passed in once for efficiency. """
         focus_pattern, control_pattern = mutation_pattern
 
-    def split_hypermuts(self, hm_columns=None):
         # This makes it possible to not pass in focus indices and control indices if lazy - probably doesn't improve performance
         # that much so may just set to always do this in time.
         focus_indices = focus_indices if focus_indices else focus_pattern.ref_match_indices(self.reference_sequence)
@@ -183,6 +182,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         return hm_data
 
 
+    def split_hypermuts(self, hm_columns):
         '''Produce the hypermut positive and hypermut negative alignments'''
         if hm_columns or hm_columns == []:
             hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
