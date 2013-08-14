@@ -12,7 +12,7 @@ VERBOSE = False
 
 "Analysis defaults, across entire code base (including cli)"
 analysis_defaults = dict(consensus_threshold=None,
-        br_left_cutoff=1.8,
+        rpr_cutoff=1.0,
         significance_level=0.05,
         prior=(0.5, 1.0),
         pos_quants_only=True,
@@ -149,10 +149,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             print "On sequence", seq.name, beta_rat
 
         # Start running stats
-        # XXX - need to make name cdf1 reflect chosen br_left_cutoff (or whatever we end up callig it)
-        cdf1 = beta_rat.cdf(kw_args['br_left_cutoff'])
-        hm_pos = cdf1 < kw_args['significance_level']
+        cutoff_cdf = beta_rat.cdf(kw_args['rpr_cutoff'])
+        hm_pos = cutoff_cdf < kw_args['significance_level']
         br_map = beta_rat.map()
+        br_ltmap = beta_rat.ltmap()
 
         fisher_pvalue = fisher.pvalue(*counts).right_tail
 
@@ -163,8 +163,9 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         hm_data = dict(
                 sequence=seq.name,
                 hm_pos=hm_pos,
-                cdf1=cdf1,
+                cutoff_cdf=cutoff_cdf,
                 map=br_map,
+                ltmap=br_ltmap,
                 fisher=fisher_pvalue,
                 focus_pos=focus_pos,
                 focus_neg=focus_neg,
