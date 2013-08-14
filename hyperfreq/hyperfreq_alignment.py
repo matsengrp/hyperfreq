@@ -4,7 +4,6 @@ from betarat import BetaRat
 from time import time
 
 import warnings
-import csv
 import fisher
 
 VERBOSE = False
@@ -35,10 +34,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     MUT_PATTERNS = [(x,y) for x in RESIDUES for y in RESIDUES]
     MUT_PATTERNS.sort()
-
-    # For keeping output code clean. May need to move this to an abstraction layer to make more flexible.
-    BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_max', 'fisher_pvalue', 'hm_pos',
-                    'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
 
     @staticmethod
     def context_sorter(c1, c2):
@@ -221,39 +216,6 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         return self
 
 
-    def write_analysis(self,
-            gross_handle=None, gross_writer=None,
-            by_seq_handle=None, by_seq_writer=None,
-            cluster=None, header=True, contexts=None):
-        """This method can be either used by itself or by the HyperfreqAlign.Set class instances to write for
-        many sets. As such, it is possible either to pass in a gross_handle file for csv writer, or a
-        csvwriter object which already has column names written to it."""
-        if not gross_writer:
-            gross_writer = csv.writer(gross_handle)
-
-        if not by_seq_writer:
-            by_seq_writer = csv.writer(by_seq_handle)
-
-        if header:
-            gross_writer.writerow(['cluster', 'sequence', 'column','context'])
-            # XXX - make sure we fix column names up to be dynamic for quants, etc
-            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES)
-
-        for seq in self:
-            # Gross writer now does by seq
-            if seq.hm_pos:
-                # XXX - going to have to make sure that focus_pos_indices can come from somewhere here
-                for i in seq.focus_pos_indices:
-                    row = [cluster, seq.name, i+1, self.context(i)]
-                    gross_writer.writerow(row)
-
-            row = [seq.name, cluster, seq.br_left, seq.br_median, seq.br_max, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
-                    seq.n_focus_neg, seq.n_control_neg]
-
-            by_seq_writer.writerow(row)
-
-
-
     class Set:
         """This class organizes the logic of dealing with clustered alignments in a cohesive fashion, so that
         each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
@@ -294,23 +256,5 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             for aln in self.cluster_alns.values():
                 aln.analyze(focus_pattern, control_pattern, consensus_threshold,
                         br_left_cutoff=br_left_cutoff, prior=prior, pos_quants_only=pos_quants_only)
-
-
-        def write_analysis(self, gross_handle, by_seq_handle):
-            """Once analyzed, write the results to files (once global, or by site, the other by sequence)."""
-            sorted_contexts = list(self.contexts)
-            sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
-            gross_writer = csv.writer(gross_handle)
-            by_seq_writer = csv.writer(by_seq_handle)
-
-            gross_writer.writerow(['cluster', 'sequence', 'column', 'context'])
-
-            by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
-                    #[HyperfreqAlignment.mut_col_name(mut) for mut in HyperfreqAlignment.MUT_PATTERNS] +
-
-            for cluster in self.cluster_alns:
-                aln = self.cluster_alns[cluster]
-                aln.write_analysis(gross_writer=gross_writer, by_seq_writer=by_seq_writer, cluster=cluster,
-                        header=False, contexts=sorted_contexts)
 
 
