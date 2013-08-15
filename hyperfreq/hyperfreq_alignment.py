@@ -147,7 +147,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         cutoff_cdf = beta_rat.cdf(kw_args['rpr_cutoff'])
         hm_pos = cutoff_cdf < kw_args['significance_level']
         br_map = beta_rat.map()
-        br_ltmap = beta_rat.ltmap()
+        br_ltmap = beta_rat.lt_map()
 
         fisher_pvalue = fisher.pvalue(*counts).right_tail
 
