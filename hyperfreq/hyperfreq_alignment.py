@@ -4,6 +4,8 @@ from betarat import BetaRat
 from collections import OrderedDict
 from time import time
 
+import itertools
+import copy
 import warnings
 import fisher
 
@@ -17,6 +19,7 @@ analysis_defaults = dict(consensus_threshold=None,
         prior=(0.5, 1.0),
         pos_quants_only=True,
         quants=[],
+        caller="map",
         cdfs=[])
 
 def apply_analysis_defaults(func):
@@ -61,6 +64,27 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             return str(self.reference_sequence[i:i+2])
         except IndexError:
             return str(self.reference_sequence[i:i+1])
+
+
+    @apply_analysis_defaults
+    def multiple_context_analysis(self, mutation_patterns, **kw_args):
+        """This makes it possible to run analysis for multiple contexts, and cull together all of the data.
+        kw_arg `caller` specifies which metric you would like to use to make a context pattern call"""
+        # The implementation here is a little weird. We go through and create a list tuples of pattern and analysis generator
+        # We do this because we need to iterative one by one through eadh seqeunce in each of the context analyses
+        analyzers = (self.analyze(x, **kw_args) for x in mutation_patterns)
+        caller = kw_args['caller']
+        for seq_analyses in itertools.izip(*analyzers):
+            # Iterate through each sequence and get a tuple of results, one for each context, as `seq_analyses`.
+            # Then go through and figure out the call information and return a map from which we can fetch all
+            # data for each sequence easily
+            call_index, call_analysis = max(enumerate(seq_analyses), key=lambda p: p[1][caller])
+            call_pattern = mutation_patterns[call_index]
+            call_data = copy.copy(call_analysis)
+            call_data['call_pattern'] = call_pattern.name
+            sequence_results = dict((pattern.name, seq_analyses[i]) for i, pattern in enumerate(mutation_patterns))
+            sequence_results['call_data'] = call_data
+            yield sequence_results
 
 
     @apply_analysis_defaults
