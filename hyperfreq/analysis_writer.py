@@ -1,88 +1,85 @@
+"""This module provides the functionality for writing out analysis results"""
+
 import csv
-from hyperfreq import HyperfreqAlignment
+import os
+import logging
 
 
-BASE_ROWNAMES = ['sequence', 'cluster', 'br_left', 'br_median', 'br_right', 'fisher_pvalue', 'hm_pos',
-                'n_focus_pos', 'n_control_pos', 'n_focus_neg', 'n_control_neg'] 
+BASE_COLNAMES = ['sequence', 'hm_pos', 'cutoff_cdf', 'map', 'ltmap', 'fisher_pvalue',
+                'focus_pos', 'control_pos', 'focus_neg', 'control_neg']
 
-translations = dict(sequence='name')
+
+def quant_namer(quant):
+    n_part = str(quant).split('.')[1]
+    if len(n_part) == 1:
+        n_part += "0"
+    return "q" + n_part
 
 
 class AnalysisWriter(object):
-    def __init__(self, writeable):
-        self.writeable = writeable
+    def __init__(self, prefix, pattern_name, quants, cdfs):
+        # Go through and make the appropriate colnames
+        colnames = BASE_COLNAMES
+        if pattern_name == "call":
+            colnames.insert(2, 'call_pattern')
+        colnames += ["q_{0}".format(q) for q in quants]
+        colnames += ["cdf_{0}".format(c) for c in cdfs]
+
+        # Create the file magicks
+        filename = '{0}.{1}.csv'.format(prefix, pattern_name)
+        self.pattern_name = pattern_name
+        self.handle = file(filename, 'w')
+        self.writer = csv.DictWriter(self.handle, colnames, extrasaction='ignore')
+        self.writer.writeheader()
+
+    def writerow(self, data):
+        self.writer.writerow(data[self.pattern_name])
+
+    def close(self):
+        self.handle.close()
 
 
-    def gross_header(self, gross_writer):
-        sorted_contexts = list(set(self.contexts)) if self.contexts else []
-        sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
+def write_analysis(analysis, prefix, patterns_names, quants, cdfs, call_only=True):
+    """This function orchestrates the entire analysis result dump. By default, it only writes out call pattern
+    analysis results and the sites file, containing information about mutated columns. Optionally, it can also
+    output analysis results for each of the contexts separately."""
 
-        by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
 
-    def by_seq_header(self, by_seq_writer):
+    log_filename = prefix + '.log'
+    # Don't want these getting all hugelike for now
+    try:
+        os.remove(log_filename)
+    except OSError:
         pass
+    logging.basicConfig(filename=log_filename)
+    logging.captureWarnings(True)
 
-    def write_gross(self, write_to):
-        writer = 
-        writer.writerow(['cluster', 'sequence', 'column','context'])
-        pass
+    def handler_builder(pattern_name):
+        # little helper to tidy things
+        return AnalysisWriter(prefix, pattern_name, quants, cdfs)
 
-    def write_by_seq(self, write_to):
-        pass
+    # Create the analysis writers
+    anal_writers = [handler_builder('call')]
+    if not call_only:
+        anal_writers += [handler_builder(p) for p in patterns_names]
 
+    sites_handle = file(prefix + '.sites.csv', 'w')
+    sites_writer = csv.writer(sites_handle)
+    sites_writer.writerow(['sequence', 'call_pattern', 'context', 'column'])
 
-# For sets
-def write_analysis(self, gross_handle, by_seq_handle):
-    """Once analyzed, write the results to files (once global, or by site, the other by sequence)."""
-    sorted_contexts = list(self.contexts)
-    sorted_contexts.sort(cmp=HyperfreqAlignment.context_sorter)
-    gross_writer = csv.writer(gross_handle)
-    by_seq_writer = csv.writer(by_seq_handle)
+    for result in analysis:
+        for anal_writer in anal_writers:
+            anal_writer.writerow(result)
 
-    gross_writer.writerow(['cluster', 'sequence', 'column', 'context'])
+        base_site_row = [result['call'][x] for x in ('sequence', 'call_pattern')]
+        mut_columns = result['call']['mut_columns']
+        mut_contexts = result['call']['mut_contexts']
 
-    by_seq_writer.writerow(HyperfreqAlignment.BASE_ROWNAMES + sorted_contexts)
+        for column, context in zip(mut_columns, mut_contexts):
+            sites_writer.writerow(base_site_row + [context, column])
 
-    for cluster in self.cluster_alns:
-        aln = self.cluster_alns[cluster]
-        aln.write_analysis(gross_writer=gross_writer, by_seq_writer=by_seq_writer, cluster=cluster,
-                header=False, contexts=sorted_contexts)
+    sites_handle.close()
+    for handler in anal_writers:
+        handler.close()
 
-# For alignments
-def write_analysis(analysis,
-        gross_handle=None, gross_writer=None,
-        by_seq_handle=None, by_seq_writer=None,
-        cluster=None, header=True, contexts=None):
-    """This method can be either used by itself or by the HyperfreqAlign.Set class instances to write for
-    many sets. As such, it is possible either to pass in a gross_handle file for csv writer, or a
-    csvwriter object which already has column names written to it."""
-    if not gross_writer:
-        gross_writer = csv.writer(gross_handle)
-
-    if not by_seq_writer:
-        by_seq_writer = csv.writer(by_seq_handle)
-
-    if header:
-        write_header(gross_writer, by_seq_writer)
-
-    else:
-        sorted_contexts = contexts
-
-    for seq in self:
-        # Gross writer now does by seq
-        if seq.hm_pos:
-            for i in seq.focus_pos_indices:
-                row = [cluster, seq.name, i+1, self.context(i)]
-                gross_writer.writerow(row)
-
-        row = [seq.name, cluster, seq.br_left, seq.br_median, seq.fisher_pvalue, seq.hm_pos, seq.n_focus_pos, seq.n_control_pos,
-                seq.n_focus_neg, seq.n_control_neg]
-        def get_ctxt(c):
-            try:
-                return seq.contexts[c]
-            except KeyError:
-                return 0
-
-        row += [get_ctxt(ctxt) for ctxt in sorted_contexts]
-        by_seq_writer.writerow(row)
 

@@ -5,7 +5,7 @@ set -e
 alias anal='python -m hyperfreq.scripts.cli analyze tests/data/alignment.fasta --out-dir tests/out'
 
 echo "Simple test"
-anal --prefix simple --pos-quants-only
+anal --prefix simple -q 0.5
 echo "Cluster test"
 anal --prefix clustered --cluster-map tests/data/clusters.csv
 echo "Testing ref out"
@@ -20,4 +20,4 @@ anal --prefix references_ww --cluster-map tests/data/clusters.csv --reference-se
 alias split='python -m hyperfreq.scripts.cli split tests/data/alignment.fasta --out-dir tests/out'
 
 echo "Simple split"
-split tests/out/simple.gross.csv --prefix simple
+split tests/out/simple.sites.csv --prefix simple

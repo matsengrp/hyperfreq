@@ -83,7 +83,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             call_data = copy.copy(call_analysis)
             call_data['call_pattern'] = call_pattern.name
             sequence_results = dict((pattern.name, seq_analyses[i]) for i, pattern in enumerate(mutation_patterns))
-            sequence_results['call_data'] = call_data
+            sequence_results['call'] = call_data
             yield sequence_results
 
 
@@ -144,6 +144,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         fisher_pvalue = fisher.pvalue(*counts).right_tail
 
         mut_columns = [i + 1 for i in focus_pos_indices] if hm_pos else []
+        mut_contexts = [self.context(i) for i in focus_pos_indices] if hm_pos else []
 
         # Construct the dict we'll be returning for this sequence and pattern (will need to add cdfs and so on
         # to it)
@@ -158,7 +159,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 focus_neg=focus_neg,
                 control_pos=control_pos,
                 control_neg=control_neg,
-                mut_columns=mut_columns)
+                mut_columns=mut_columns,
+                mut_contexts=mut_contexts)
 
         # If this flag is set, we only want to compute the quantiles if the sequence is gonna be positive
         for quant in kw_args['quants']:

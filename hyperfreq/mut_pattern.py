@@ -66,26 +66,39 @@ class MutPattern(object):
         return [i for i in self.mut_neg_indices(seq) if ref_indices.count(i) > 0]
 
 
+class MutPatternPair(tuple):
+    """This is a convenience class which gives us access to control pattern Pair as though they are tuples,
+    but with a name function (for call pattern output column, etc.)"""
+    def __new__(cls, focus_pattern, control_pattern, name=None):
+        return super(MutPatternPair, cls).__new__(cls, tuple((focus_pattern, control_pattern)))
+
+    def __init__(self, focus_pattern, control_pattern, name=None):
+        super(MutPatternPair, self).__init__(focus_pattern, control_pattern)
+        self.name = name if name else focus_pattern.mutation[0] + focus_pattern.downstream_context
+
+
+
 GG_FOCUS = MutPattern(('G','A'), 'G')
 GG_CONTROL = MutPattern(('G','A'), '[^G]')
-GG = (GG_FOCUS, GG_CONTROL)
+GG = MutPatternPair(GG_FOCUS, GG_CONTROL)
 
 GA_FOCUS = MutPattern(('G','A'), 'A')
 GA_CONTROL = MutPattern(('G','A'), '[^A]')
-GA = (GA_FOCUS, GA_CONTROL)
+GA = MutPatternPair(GA_FOCUS, GA_CONTROL)
 
 GM_FOCUS = MutPattern(('G','A'), '[AC]')
 GM_CONTROL = MutPattern(('G','A'), '[^AC]')
-GM = (GM_FOCUS, GM_CONTROL)
+GM = MutPatternPair(GM_FOCUS, GM_CONTROL, 'GM')
 
 GR_FOCUS = MutPattern(('G','A'), '[GA]')
-GR_CONTROL = MutPattern(('G','A'), '[CT]')
-GR = (GR_FOCUS, GR_CONTROL)
+GR_CONTROL = MutPattern(('G','A'), '[CT]', 'GR')
+GR = MutPatternPair(GR_FOCUS, GR_CONTROL)
 
 GV_FOCUS = MutPattern(('G','A'), '[^T]')
 GV_CONTROL = MutPattern(('G','A'), 'T')
-GV = (GV_FOCUS, GV_CONTROL)
+GV = MutPatternPair(GV_FOCUS, GV_CONTROL, 'GV')
 
-pattern_map = dict(gg=GG, ga=GA, gm=GM, gr=GR, gv=GV)
+# XXX - should change this to patterns
+patterns = dict(GG=GG, GA=GA, GM=GM, GR=GR, GV=GV)
 
 
