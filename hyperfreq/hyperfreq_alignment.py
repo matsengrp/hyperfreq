@@ -242,13 +242,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
 
         @apply_analysis_defaults
-        def analyze(self, pattern, **kw_args):
-            # XXX - Update doc
-            """Run the analysis for each cluster's HyperfreqAlignment. It is possible to specify the mutation
-            transition, the control transition here, and well as the probability difference and pvalue cutoff
-            which for the decision procedure.  Note that if you wish to change the consensus_threshold used to
-            instantiate the Set (or override the reference_sequences), that can be done here."""
-            for aln in self.cluster_alns.values():
-                aln.analyze(pattern, **kw_args)
+        def multiple_context_analysis(self, patterns, **kw_args):
+            """Run the analysis for each cluster's HyperfreqAlignment. Any keyword arguments passed to this
+            function get passed along to the individual function."""
+            return itertools.chain(*(aln.multiple_context_analysis(patterns, **kw_args) for aln in
+                    self.cluster_alns.values()))
 
 
