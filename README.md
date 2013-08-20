@@ -78,13 +78,13 @@ It's also possible to define your own mutation patterns using the `MutPattern` a
 
 Hyperfreq depends on `biopython` and [`betarat`](https://github.com/fhcrc/betarat) libraries. If you use pip for installation, `biopython` should be installed for you automatically. Currently, `betarat` will have to be manually installed, which can be done by following [these directions](https://github.com/fhcrc/betarat).
 
-## Pip
+### Pip
 
 If you are using pip, you can do the following from the directory where hyperfreq has been downloaded (or checked out).
 
     pip install
 
-## Setuptools
+### Setuptools
 
 If the above does not work for you, you probably do not have pip installed (or perhaps no python, in which case [see this](http://www.python.org/getit/)). You can either [install it](http://www.pip-installer.org/en/latest/installing.html), or do the following.
 
@@ -94,7 +94,7 @@ Next, download or check out the hyperfreq code base. Using your terminal, naviga
 
     python setup.py install
 
-## In the future...
+### In the future...
 
 we may make it possible to autmoate this entire process through pip. In the mean time, let us know if you have any difficulties.
 
