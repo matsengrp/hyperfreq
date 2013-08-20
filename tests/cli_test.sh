@@ -2,8 +2,7 @@
 
 set -e
 
-alias anal='python -m hyperfreq.scripts.cli analyze tests/data/alignment.fasta --out-dir tests/out'
-
+anal -h
 echo "Simple test"
 anal --prefix simple -q 0.5
 echo "Cluster test"
@@ -12,10 +11,10 @@ echo "Testing ref out"
 anal --prefix ref_out --cluster-map tests/data/clusters.csv --write-references
 echo "Ref seqs test"
 anal --prefix references --cluster-map tests/data/clusters.csv --reference-sequences tests/data/ref_seqs.fasta \
-  --cluster-col cluster_name
+  --cluster-col cluster
 echo "Ref seqs test (with writing)"
 anal --prefix references_ww --cluster-map tests/data/clusters.csv --reference-sequences tests/data/ref_seqs.fasta \
-  --cluster-col cluster_name --write-references
+  --cluster-col cluster --write-references
 
 alias split='python -m hyperfreq.scripts.cli split tests/data/alignment.fasta --out-dir tests/out'
 
