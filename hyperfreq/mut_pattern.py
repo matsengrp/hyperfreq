@@ -98,7 +98,6 @@ GV_FOCUS = MutPattern(('G','A'), '[^T]')
 GV_CONTROL = MutPattern(('G','A'), 'T')
 GV = MutPatternPair(GV_FOCUS, GV_CONTROL, 'GV')
 
-# XXX - should change this to patterns
 patterns = dict(GG=GG, GA=GA, GM=GM, GR=GR, GV=GV)
 
 
