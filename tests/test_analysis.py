@@ -1,5 +1,6 @@
 import unittest
 import helpers
+from Bio import Seq
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq import mut_pattern
@@ -40,6 +41,55 @@ class TestBasicAnalysis(unittest.TestCase):
                 self.assertEqual(result['mut_columns'], hm_pos_indices)
             else:
                 self.assertEqual(result['mut_columns'], [])
+
+class TestMutCounts(unittest.TestCase):
+    def setUp(self):
+        aln_string = """
+        >seq1
+        GGTGACGCT
+        >seq2
+        AGTAACGCT
+        >seq3
+        GGTAACACT
+        """
+        ref_seq = Seq.Seq('GGTGACGCT')
+        self.aln = HyperfreqAlignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
+
+    def __test_counts__(self, pattern, real_counts):
+        for result in self.aln.analyze(pattern):
+            seq_counts = [result[x] for x in ('focus_pos', 'control_pos', 'focus_neg', 'control_neg')]
+            seq_real_counts = real_counts[result['sequence']]
+            self.assertEqual(seq_counts, seq_real_counts)
+
+    def test_ga_counts(self):
+        self.__test_counts__(mut_pattern.GA, dict(
+                seq1=[0, 0, 1, 3],
+                seq2=[1, 1, 0, 2],
+                seq3=[1, 1, 0, 2]))
+
+    def test_gg_counts(self):
+        self.__test_counts__(mut_pattern.GG, dict(
+                seq1=[0, 0, 1, 3],
+                seq2=[1, 1, 0, 2],
+                seq3=[0, 2, 1, 1]))
+
+    def test_gr_counts(self):
+        self.__test_counts__(mut_pattern.GR, dict(
+                seq1=[0, 0, 2, 2],
+                seq2=[2, 0, 0, 2],
+                seq3=[1, 1, 1, 1]))
+
+    def test_gm_counts(self):
+        self.__test_counts__(mut_pattern.GM, dict(
+                seq1=[0, 0, 2, 2],
+                seq2=[1, 1, 1, 1],
+                seq3=[2, 0, 0, 2]))
+
+    def test_gv_counts(self):
+        self.__test_counts__(mut_pattern.GV, dict(
+                seq1=[0, 0, 3, 1],
+                seq2=[2, 0, 1, 1],
+                seq3=[2, 0, 1, 1]))
 
 
 class TestAlignmentSet(unittest.TestCase):
