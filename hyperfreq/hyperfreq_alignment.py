@@ -182,12 +182,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     def split_hypermuts(self, hm_columns):
         '''Produce the hypermut positive and hypermut negative alignments'''
-        if hm_columns or hm_columns == []:
-            hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
-            hm_indices.sort()
-        else:
-            # if hm_columns is not specified, use the analysis results
-            hm_indices = self.hm_pos_indices
+        hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
+        hm_indices.sort()
 
         # soi is either a seq or index - handle appropriately
         def hyp_reducer(soi, i):
