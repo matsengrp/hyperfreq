@@ -91,8 +91,8 @@ GM_CONTROL = MutPattern(('G','A'), '[^AC]')
 GM = MutPatternPair(GM_FOCUS, GM_CONTROL, 'GM')
 
 GR_FOCUS = MutPattern(('G','A'), '[GA]')
-GR_CONTROL = MutPattern(('G','A'), '[CT]', 'GR')
-GR = MutPatternPair(GR_FOCUS, GR_CONTROL)
+GR_CONTROL = MutPattern(('G','A'), '[^GA]')
+GR = MutPatternPair(GR_FOCUS, GR_CONTROL, 'GR')
 
 GV_FOCUS = MutPattern(('G','A'), '[^T]')
 GV_CONTROL = MutPattern(('G','A'), 'T')
