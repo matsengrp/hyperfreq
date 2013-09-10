@@ -26,13 +26,13 @@ These commands will all output data to a file named `hyperfreq_analysis.call.csv
 
 By default, these analyses look for GG context hypermutation, suggestive of APOBEC3G activity. One can specify multiple contexts for analysis using the `-p` or `--patterns` flag(s). Pattern options include
 
- *pattern*  *associated with*
-----------  ------------------------------------------------------------------------
-      `GG`  A3G activity
-      `GA`  A3F (and other A3) activity in humans
-      `GR`  combined A3G and A3F activity (as often observed in hypermutated HIV
-      `GM`  rhesus macaque A3DE activity (as observed in XMRV and SFV infections) \*
-      `GV`  combined rhesus A3DE and A3G activity
+ **pattern** | **associated with**
+------------ | ------------------------------------------------------------------------
+        `GG` | A3G activity
+        `GA` | A3F (and other A3) activity in humans
+        `GR` | combined A3G and A3F activity (as often observed in hypermutated HIV
+        `GM` | rhesus macaque A3DE activity (as observed in XMRV and SFV infections) \*
+        `GV` | combined rhesus A3DE and A3G activity
 
 Note that R, M and V are IUPAC degenerate codes for A or G; A or C; and A, C or G, respectively.
 
@@ -78,15 +78,15 @@ It's also possible to define your own mutation patterns using the `MutPattern` a
 
 Hyperfreq depends on `biopython` and [`betarat`](https://github.com/fhcrc/betarat) libraries. If you use pip for installation, `biopython` should be installed for you automatically. Currently, `betarat` will have to be manually installed, which can be done by following [these directions](https://github.com/fhcrc/betarat).
 
-## Pip
+### Pip
 
 If you are using pip, you can do the following from the directory where hyperfreq has been downloaded (or checked out).
 
     pip install
 
-## Setuptools
+### Setuptools
 
-If the above does not work for you, you probably do not have pip installed (or perhaps no python). You can either [install it](http://www.pip-installer.org/en/latest/installing.html), or do the following.
+If the above does not work for you, you probably do not have pip installed (or perhaps no python, in which case [see this](http://www.python.org/getit/)). You can either [install it](http://www.pip-installer.org/en/latest/installing.html), or do the following.
 
 First [install biopython](http://biopython.org/DIST/docs/install/Installation.html).
 
@@ -94,7 +94,7 @@ Next, download or check out the hyperfreq code base. Using your terminal, naviga
 
     python setup.py install
 
-## In the future...
+### In the future...
 
 we may make it possible to autmoate this entire process through pip. In the mean time, let us know if you have any difficulties.
 
