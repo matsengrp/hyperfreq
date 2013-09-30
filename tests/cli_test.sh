@@ -2,9 +2,13 @@
 
 set -e
 
+alias anal='python -m hyperfreq.scripts.cli analyze tests/data/alignment.fasta --out-dir tests/out'
+
 anal -h
 echo "Simple test"
 anal --prefix simple -q 0.5
+echo "Simple cdfs"
+anal --prefix simple_cdfs --cdfs 1.0 2.0
 echo "Cluster test"
 anal --prefix clustered --cluster-map tests/data/clusters.csv
 echo "Testing ref out"
