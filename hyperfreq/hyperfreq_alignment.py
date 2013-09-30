@@ -6,6 +6,7 @@ from time import time
 
 import itertools
 import copy
+import re
 import warnings
 import fisher
 
@@ -32,6 +33,30 @@ def apply_analysis_defaults(func):
     return decorated
 
 
+def make_pattern_call(analyses, caller):
+    """Takes a list of analysis results (as dicts), presumably each for a different context, and returns the
+    list index and entry identified as having the strongest hypermutation signal. Actual evaluation depends on
+    1) whether the sequence is identified in a given context as actually being positive, and 2) which context
+    has the more extreme value of the `caller` statistic. Larger values of the caller statistic will be seen
+    as more extreme, except for `caller` values matching "cutoff_cdf" or "cdf_*", for which smaller values are
+    considered more extreme."""
+    # This takes care of the reverse sorting for CDF values
+    sign = -1 if caller == 'cutoff_cdf' or re.match('cdf_', caller) else 1
+    def sort_tuple(result):
+        try:
+            caller_result = result[caller]
+        except KeyError:
+            raise ValueError, """The call statistic {caller} does not exist for some sequence. If you are
+            using a quantile (such as q_0.05) for calling, try specifying -Q instead of -q from the command
+            line (or positive_quants_only=False via the API); otherwise quantiles are only computed for
+            sequences evaluated as positive.""".format(caller=caller)
+        return (result['hm_pos'], sign * caller_result)
+    # Where all the work is - a sort that prioritizes hm_pos, then the caller statistic value
+    _, index = max((sort_tuple(result), i) for i, result in enumerate(analyses))
+    return index, analyses[index]
+
+
+
 class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     def __init__(self, *args, **kwargs):
@@ -46,7 +71,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 value = None
             return value
 
-        self.consensus_threshold = strip_option('consensus_threshold', 0.5)
+        self.consensus_threshold = strip_option('consensus_threshold',
+                analysis_defaults['consensus_threshold'])
         ref_seq = strip_option('reference_sequence')
         super(HyperfreqAlignment, self).__init__(*args, **kwargs)
         self.reference_sequence = ref_seq if ref_seq else self.__consensus__(self.consensus_threshold)
@@ -78,7 +104,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
             # Iterate through each sequence and get a tuple of results, one for each context, as `seq_analyses`.
             # Then go through and figure out the call information and return a map from which we can fetch all
             # data for each sequence easily
-            call_index, call_analysis = max(enumerate(seq_analyses), key=lambda p: p[1][caller])
+            call_index, call_analysis = make_pattern_call(seq_analyses, caller)
             call_pattern = mutation_patterns[call_index]
             call_data = copy.copy(call_analysis)
             call_data['call_pattern'] = call_pattern.name
@@ -93,9 +119,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
         alingment initialization (by passing None) but can be overridden herek.
         """
-        # Want to make it possible to override the consensus_threshold established on initialization. Making
-        # sure that it's created on initialization first though, makes things safter, as you know there is
-        # always a reference seq
+        # A reference sequence is created (as a consensus) on initialization, making things safer in assuring
+        # there is always a reference seq for comparison. This makes it easy to reassign for a given analysis.
         consensus_threshold = kw_args['consensus_threshold']
         if consensus_threshold and consensus_threshold != self.consensus_threshold:
             self.consensus_threshold = consensus_threshold

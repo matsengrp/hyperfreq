@@ -42,6 +42,7 @@ class TestBasicAnalysis(unittest.TestCase):
             else:
                 self.assertEqual(result['mut_columns'], [])
 
+
 class TestMutCounts(unittest.TestCase):
     def setUp(self):
         aln_string = """
@@ -90,6 +91,52 @@ class TestMutCounts(unittest.TestCase):
                 seq1=[0, 0, 3, 1],
                 seq2=[2, 0, 1, 1],
                 seq3=[2, 0, 1, 1]))
+
+
+class TestCallPatterns(unittest.TestCase):
+    """The following motivates these tests:
+        BetaRat(5.5, 0.5, 11.0, 16.0) cdf: 0.00392333077990058 map: 3.27321043801743 ppf: 2.47393902966
+        BetaRat(4.5, 1.5, 6.0, 21.0) cdf: 0.00570220397191901 map: 3.475475215347 ppf: 1.98195901549
+    As you can see, different methods can make different calls."""
+
+    def setUp(self):
+        ref_seq = Seq.Seq('GA'*9 + 'GC'*6 + 'GT'*15)
+        query_seq = 'AA'*4 + 'GA'*5 + 'AC' + 'GC'*5 + 'GT'*15
+        aln_string = '>seq1\n{0}'.format(query_seq)
+        self.aln = HyperfreqAlignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
+        self.mutation_patterns=[mut_pattern.GA, mut_pattern.GM]
+
+    def test_map_caller(self):
+        for result in self.aln.multiple_context_analysis(self.mutation_patterns, caller='map'):
+            call = result['call']
+            self.assertEqual(call['call_pattern'], 'GA')
+
+    def test_ppf_caller(self):
+        for result in self.aln.multiple_context_analysis(self.mutation_patterns, caller='q_0.05',
+                quants=[0.05], pos_quants_only=False):
+            call = result['call']
+            self.assertEqual(call['call_pattern'], 'GM')
+
+    def test_cdf_caller(self):
+        """Note that CDF should be evaluated as smaller => more extreme, whereas the other statistics are the
+        inverse"""
+        for result in self.aln.multiple_context_analysis(self.mutation_patterns, caller='cutoff_cdf'):
+            call = result['call']
+            self.assertEqual(call['call_pattern'], 'GM')
+
+    def test_ppf_caller_without_all_quants(self):
+        """Should raise if we don't have the given statistic to test for call comparison."""
+        analysis = self.aln.multiple_context_analysis(self.mutation_patterns, caller='q_0.05')
+        with self.assertRaises(ValueError):
+            analysis.next()
+
+    def test_not_calling_negatives(self):
+        """We should only call sequences when they are actually positive, even if there are non-positive
+        sequences with more extreme call statistics."""
+        for result in self.aln.multiple_context_analysis(self.mutation_patterns, caller='map',
+                significance_level=0.005):
+            call = result['call']
+            self.assertEqual(call['call_pattern'], 'GM')
 
 
 class TestAlignmentSet(unittest.TestCase):
