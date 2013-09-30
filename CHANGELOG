@@ -11,6 +11,8 @@ This major version bump sees the addition of many new features, and significant 
 * testing for multiple mutation patterns at once, and automatic pattern calling
 * significant speed improvements achieved by deciding on hypermutation status using the CDF instead of a quantile (PPF), and computing of quantiles only if asked, and only for hypermutation positive sequences, unless otherwise specified
 * analysis results are accessed through a generator instead of as attributes built up on the alignment object
+* specification of call pattern statistic and prior from command line
+* specification of multiple CDF and PPF (quantile) values for computation
 
 
 ## Version 0
