@@ -98,6 +98,10 @@ GV_FOCUS = MutPattern(('G','A'), '[^T]')
 GV_CONTROL = MutPattern(('G','A'), 'T')
 GV = MutPatternPair(GV_FOCUS, GV_CONTROL, 'GV')
 
-patterns = dict(GG=GG, GA=GA, GM=GM, GR=GR, GV=GV)
+naive_focus = MutPattern(('G', 'A'), '')
+naive_control = MutPattern(('A', 'G'), '')
+naive = MutPatternPair(naive_focus, naive_control, 'naive')
+
+patterns = dict(GG=GG, GA=GA, GM=GM, GR=GR, GV=GV, naive=naive)
 
 
