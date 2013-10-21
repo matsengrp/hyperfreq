@@ -13,5 +13,5 @@ setup(name='hyperfreq',
                 'hyperfreq = hyperfreq.scripts.cli:main'
             ]},
         packages=find_packages(exclude=['tests']),
-        install_requires=['betarat >=1.0', 'biopython'])
+        install_requires=['betarat >=0.1.0', 'biopython'])
 
