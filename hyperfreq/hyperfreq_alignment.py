@@ -14,7 +14,7 @@ VERBOSE = False
 
 
 "Analysis defaults, across entire code base (including cli)"
-analysis_defaults = dict(consensus_threshold=None,
+analysis_defaults = dict(
         rpr_cutoff=1.0,
         significance_level=0.05,
         prior=(0.5, 1.0),
@@ -22,6 +22,7 @@ analysis_defaults = dict(consensus_threshold=None,
         quants=[],
         caller="map",
         cdfs=[])
+
 
 def apply_analysis_defaults(func):
     "Decorator for applying analysis defaults to various analysis functions"
@@ -61,7 +62,10 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     def __init__(self, *args, **kwargs):
         """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
-        lets one specify a reference sequence (Bio.Seq type) for comparison istead of a consensus."""
+        lets one either specify a reference sequence (Bio.Seq type) or a consensus threshold for computing the
+        consensus of the alignment as the reference sequence. Only one of these options should be specified.
+        If nothing is specified, the consensus is taken with a threshold of None (See Bio.Align.AlignInfo's
+        dumb_consensus function for details)."""
 
         def strip_option(option_name, default=None):
             try:
@@ -71,11 +75,13 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
                 value = None
             return value
 
-        self.consensus_threshold = strip_option('consensus_threshold',
-                analysis_defaults['consensus_threshold'])
+        consensus_threshold = strip_option('consensus_threshold')
         ref_seq = strip_option('reference_sequence')
         super(HyperfreqAlignment, self).__init__(*args, **kwargs)
-        self.reference_sequence = ref_seq if ref_seq else self.__consensus__(self.consensus_threshold)
+        if consensus_threshold and ref_seq:
+            raise ValueError, "Only one of reference_sequence or consensus_threshold should be specified"
+        # reference sequence should be manually re-specified if this need to be changed
+        self.reference_sequence = ref_seq if ref_seq else self.__consensus__(consensus_threshold)
 
 
     def __consensus__(self, consensus_threshold):
@@ -94,8 +100,9 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     @apply_analysis_defaults
     def multiple_context_analysis(self, mutation_patterns, **kw_args):
-        """This makes it possible to run analysis for multiple contexts, and cull together all of the data.
-        kw_arg `caller` specifies which metric you would like to use to make a context pattern call"""
+        """Run hypermutation analysis for multiple contexts and cull together all of the data, including
+        calling of the pattern with the highest evidence of hypermutation. kw_arg `caller` specifies the
+        metric use in making the call pattern decision."""
         # The implementation here is a little weird. We go through and create a list tuples of pattern and analysis generator
         # We do this because we need to iterative one by one through eadh seqeunce in each of the context analyses
         analyzers = (self.analyze(x, **kw_args) for x in mutation_patterns)
@@ -115,17 +122,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     @apply_analysis_defaults
     def analyze(self, mutation_pattern, **kw_args):
-        """This is where all of the grunt work happens; running through the alignment to find
-        hypermutation on a gross and by_seq basis. Consensus threshold defaults to that of the hyperfreq
-        alingment initialization (by passing None) but can be overridden herek.
-        """
-        # A reference sequence is created (as a consensus) on initialization, making things safer in assuring
-        # there is always a reference seq for comparison. This makes it easy to reassign for a given analysis.
-        consensus_threshold = kw_args['consensus_threshold']
-        if consensus_threshold and consensus_threshold != self.consensus_threshold:
-            self.consensus_threshold = consensus_threshold
-            self.reference_sequence = self.__consensus__(consensus_threshold)
-
+        """Returns an iterator of hypermutation analysis results for the given mutation pattern."""
         focus_pattern, control_pattern = mutation_pattern
 
         focus_indices = focus_pattern.ref_match_indices(self.reference_sequence)
@@ -137,8 +134,8 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
     @apply_analysis_defaults
     def analyze_sequence(self, seq, mutation_pattern, focus_indices=None, control_indices=None, **kw_args):
-        """This function does the work of hypermutation analysis on a sequence by sequence basis. Focus and
-        control indices can be computed and passed in once for efficiency. """
+        """Hypermutation analysis of a specific sequence. Arguments focus_indices and control_indices make it
+        possible to compute these values once, outside of this function, and reused for multiple evaluations."""
         focus_pattern, control_pattern = mutation_pattern
 
         # This makes it possible to not pass in focus indices and control indices if lazy - probably doesn't improve performance
@@ -240,11 +237,17 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
         for the entire alignment."""
         def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None,
-                consensus_threshold=0.5):
-            """Options one can specify here are reference sequence and consensus_threshold, both of which are
-            passed along to HyperfreqAlignment instantiations. Note that one can override the consensus
-            threshold (or reference_seqs) passed here by passing in a consensus_threshold to analyze
-            hypermuts."""
+                consensus_threshold=None):
+            """Only required argument is seq_records, which should be a dictionary mapping sequence names to
+            SeqRecord objects. The optional cluster map specifie how these sequences partition into
+            clusters; if unspecified, everything is take as one cluster named "all". Other options:
+
+            * clusters: specify which of the clusters to keep. None defaults to all clusters present.
+            * [reference_sequences | consensus_threshold]: Only one of these should be specified.
+                  - reference_sequences: a dict mapping cluster names to sequences.
+                  - consensus_threshold: a float or None; passed to AlignInfo's dumb_consensus function.
+                  By default consensus sequences are used with no threshold if both options are unset.
+            """
             self.seq_records = seq_records
             self.cluster_map = cluster_map if cluster_map else {'all': seq_records.keys()}
             self.clusters = clusters if clusters else self.cluster_map.keys()

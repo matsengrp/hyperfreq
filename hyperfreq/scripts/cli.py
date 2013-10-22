@@ -51,12 +51,12 @@ def analyze(args):
     # This lets the cluster map be aptional, so that this script can be used
     # for naive hm filtering/analysis
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
-    alignments = HyperfreqAlignment.Set(seq_records, cluster_map,
+    alignments = HyperfreqAlignment.Set(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
             reference_sequences=reference_sequences)
     patterns = [mut_pattern.patterns[p] for p in args.patterns]
     
     # Create the analysis generator, and run it as we write out to files
-    analysis = alignments.multiple_context_analysis(patterns, consensus_threshold=args.consensus_threshold,
+    analysis = alignments.multiple_context_analysis(patterns,
             rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
             pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
     prefix = path.join(args.out_dir, args.prefix)
@@ -154,8 +154,10 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('--cluster-col', default='cluster',
             help="Column in cluster_map file to be used for cluster specification")
     analyze_args.add_argument('--consensus-threshold', type=float,
-            help="""Used for computing consensus sequences as reference sequences for
-            HM evaluation when reference sequences are not explicity specified.""")
+            help="""Used for computing consensus sequences as reference sequences for HM evaluation when 
+            reference sequences are not explicity specified. See biopython's
+            AlignInfo.SummmaryInfo.dumb_consensus function. (default: %(default)s; no threshold, most frequent
+            base is taken)""")
     # Should remove necessity for "all" and just take the first, if no matches (with warning?)
     analyze_args.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
