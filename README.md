@@ -95,7 +95,7 @@ If you do get it set up on OSX or Windows and have any tips to share, please fee
 Hyperfreq depends on the following python libraries
 
 * `biopython`
-* `fisher
+* `fisher`
 * [`betarat`](https://github.com/fhcrc/betarat)
 
 We recommend installing betarat first, using the directions in the link above.
