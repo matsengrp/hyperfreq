@@ -2,10 +2,11 @@
 
 import argparse
 import csv
+from hyperfreq import alnclst
 from os import path
 from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
-from hyperfreq.cluster import load_cluster_map
+from hyperfreq.cluster import load_cluster_map, parse_clusters
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment, analysis_defaults
 from hyperfreq import mut_pattern, hyperfreq_alignment, __version__
 from hyperfreq.analysis_writer import write_analysis
@@ -42,7 +43,19 @@ def write_reference_seqs(alignments, fn_base):
 
 
 def analyze(args):
+    import logging; logging.captureWarnings(True)
+    # Fetch sequence records and analysis patterns
     seq_records = SeqIO.to_dict(SeqIO.parse(args.alignment, 'fasta'))
+    patterns = [mut_pattern.patterns[p] for p in args.patterns]
+    pattern_names = [p.name for p in patterns]
+    prefix = path.join(args.out_dir, args.prefix)
+    analysis_settings = dict(
+            rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
+            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
+
+    # Need to think about how best to fork things here; for instance, might make sense to let the user specify
+    # the initial clusters for whatever reason... However, specifying the reference sequences shouldn't make
+    # any sense there
     if args.reference_sequences:
         reference_sequences = SeqIO.to_dict(SeqIO.parse(args.reference_sequences, 'fasta'))
     else:
@@ -53,16 +66,30 @@ def analyze(args):
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
             reference_sequences=reference_sequences)
-    patterns = [mut_pattern.patterns[p] for p in args.patterns]
-    
-    # Create the analysis generator, and run it as we write out to files
-    analysis = alignments.multiple_context_analysis(patterns,
-            rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
-            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
-    prefix = path.join(args.out_dir, args.prefix)
-    pattern_names = [p.name for p in patterns]
-    write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)
 
+    # Create the analysis generator
+    analysis = alignments.multiple_context_analysis(patterns, **analysis_settings)
+
+    if args.cluster_threshold:
+        for hm_it in range(args.cluster_iterations - 1):
+            print("On hm/cluster iteration", hm_it)
+            # Grab the HM columns from the most recent analysis and split out the pos sites
+            hm_columns = []
+            for result in analysis:
+                hm_columns += result['call']['mut_columns']
+            hm_neg_aln = HyperfreqAlignment(seq_records.values()).split_hypermuts(hm_columns).hm_neg_aln
+            # Cluster with the specified settings
+            clustering = alnclst.Clustering(hm_neg_aln, args.cluster_threshold,
+                    args.consensus_threshold)
+            clustering = clustering.recenter(args.recentering_iterations)
+            cluster_map = parse_clusters(clustering.mapping_iterator(), cluster_key=0, sequence_key=1)
+            # Create the Alignment set
+            clustered_alignment = HyperfreqAlignment.Set(seq_records, cluster_map,
+                    consensus_threshold=args.consensus_threshold)
+            analysis = clustered_alignment.multiple_context_analysis(patterns, **analysis_settings)
+
+    # Write the final analysis to file
+    write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)
     if args.write_references:
         write_reference_seqs(alignments, prefix)
 
@@ -171,6 +198,29 @@ def setup_analyze_args(subparsers):
             cluster. Consequently, the output file can be used subsequently as input to --reference-sequences""")
     analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
             help="""Generate a separate file for each of the analysis patterns (default: call_only=%(default)s)""")
+
+    # Iterative clustering settings
+    #should make this mutually exclusive with other specifications of reference sequence
+    #-M --min-per-cluster-percent
+    #-C --write-intermediate-clusters
+    #-g --global-cons-first
+    analyze_args.add_argument('-t', '--cluster-threshold', type=float,
+            help="""If specified, computes clusters from the input data, iteratively removing columns
+            suspected of hypermutation and reclustering so tha tcluster structure is not effected by supposed
+            hypermutation.""")
+    analyze_args.add_argument('-i', '--cluster-iterations', type=int, default=5,
+            help="""If iterative hypermutation evaluation is to be performed, this specifies the number of
+            iterations""")
+    analyze_args.add_argument('-I', '--recentering-iterations', type=int, default=4,
+            help="""Not to be confused with --cluster-iterations, this specifies the number of recentering
+            cluster iterations within each outer clustering/hm-evaluation iteration.""")
+    analyze_args.add_argument('-m', '--min-per-cluster', type=int, default=5,
+            help="""This value specifies the minimum number of sequences in a cluster. This should be
+            specified in order to avoid comparing a query sequence to a consensus sequence for a small enough
+            cluster that the consensus reflects hypermutation patterns. Clusters smaller than this value will
+            be merged with the nearest cluster until no clusters are left""")
+
+    # Set analysis default arguments
     for arg, default in analysis_defaults.iteritems():
         try:
             analyze_args.set_defaults(**dict([(arg, default)]))
