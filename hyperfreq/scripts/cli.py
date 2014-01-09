@@ -143,24 +143,36 @@ def setup_analyze_args(subparsers):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             description='Analyze alignment for evidence of hypermuation')
     setup_common_args(analyze_args)
+    analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
+            help="""Generate a separate file for each of the analysis patterns instead of just the call
+            pattern (default: call_only=%(default)s)""")
+
+    eval_group = analyze_args.add_argument_group('HM EVALUATION SETTINGS')
     # Should we get this to be smarter about whether to write out a call file when only one analysis is run?
     pattern_choices = mut_pattern.patterns.keys()
-    analyze_args.add_argument('-p', '--patterns', choices=pattern_choices, default=['GG'], nargs='+',
+    eval_group.add_argument('-p', '--patterns', choices=pattern_choices, default=['GG'], nargs='+',
             help="""Specify the type of apobec activity to analyze. For example, 'GG' specifies
             a focus pattern of GG to AG, characteristic of APOBEC3G activity. Multiple patterns should be
             separated by spaces. Characters M, R and V correspond to IUPAC codes.""")
-    analyze_args.add_argument('--rpr-cutoff', type=float,
+    eval_group.add_argument('--rpr-cutoff', type=float,
             help="""For hm_pos determination: if a sequence has a RPR higher than this value with confidence
             specified by --significance-level, it will be marked as hypermutation positive.""")
-    analyze_args.add_argument('-s', '--significance-level', type=float,
+    eval_group.add_argument('-s', '--significance-level', type=float,
             help="""For hm_pos determination: if, with this specified level of confidence, a sequence has a RPR
             higher than the specified rpr_cutoff, it will be marked as hypermutation positive.""")
-    QuantAction.register(analyze_args)
-    analyze_args.add_argument('--cdfs', nargs="+", type=float,
+    QuantAction.register(eval_group)
+    eval_group.add_argument('--cdfs', nargs="+", type=float,
             help="""Specify cdfs to be computed (separated by spaces). These are computed in addition to the
             CDF of the rpr-cutoff, as described above.""")
+    eval_group.add_argument('--caller',
+            help="""Statistic to be used for deciding which mutation pattern has the strongest hypermutation
+            signal. The choice specified should be the name of a column in the output file, such as "map",
+            "cutoff_cdf" or "q_0.05". Note: the value must exist for each sequence and call pattern analyzed.
+            As such, you must use the `-Q` flag (for computing all quantiles) if you wish to call based on
+            quantiles.""")
 
-    prior_group = analyze_args.add_mutually_exclusive_group()
+    prior_group = analyze_args.add_argument_group('PRIORS')
+    prior_group = prior_group.add_mutually_exclusive_group()
     prior_group.add_argument('--prior', type=float, nargs=2,
             help="""Prior on Beta distributions. The default (%(default)s) corresponds to a belief that
             mutations are relatively rare, but unbiased with respect to context.""")
@@ -169,35 +181,28 @@ def setup_analyze_args(subparsers):
     prior_group.add_argument('--uniform', help='Uniform prior (1.0, 1.0) on Beta distributions.', action='store_const',
             dest='prior', const=(1.0, 1.0))
 
-    analyze_args.add_argument('--caller',
-            help="""Statistic to be used for deciding which mutation pattern has the strongest hypermutation
-            signal. The choice specified should be the name of a column in the output file, such as "map",
-            "cutoff_cdf" or "q_0.05". Note: the value must exist for each sequence and call pattern analyzed.
-            As such, you must use the `-Q` flag (for computing all quantiles) if you wish to call based on
-            quantiles.""")
-    analyze_args.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
+    refseq_group = analyze_args.add_argument_group('REFERENCE SEQS / CLUSTERING')
+    refseq_group.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
             help="CSV file mapping sequences to clusters")
     # Should make this smarter so that it guesses a few things first...
-    analyze_args.add_argument('--cluster-col', default='cluster',
+    refseq_group.add_argument('--cluster-col', default='cluster',
             help="Column in cluster_map file to be used for cluster specification")
-    analyze_args.add_argument('--consensus-threshold', type=float,
+    refseq_group.add_argument('--consensus-threshold', type=float,
             help="""Used for computing consensus sequences as reference sequences for HM evaluation when 
             reference sequences are not explicity specified. See biopython's
             AlignInfo.SummmaryInfo.dumb_consensus function. (default: %(default)s; no threshold, most frequent
             base is taken)""")
     # Should remove necessity for "all" and just take the first, if no matches (with warning?)
-    analyze_args.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
+    refseq_group.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
             help="""If specified, use the reference sequences in this file for comparison instead of consensus
             sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
             ensure that there is a sequence named 'all' in your reference_sequences alignment.
             Clusters for which no reference sequence is specified will be compared to a computed consensus
             sequence as reference.""")
-    analyze_args.add_argument('-R', '--write-references', default=False, action='store_true',
+    refseq_group.add_argument('-R', '--write-references', default=False, action='store_true',
             help="""Writes reference sequences (typically consensus sequences) used for HM evalutation. If
             sequences are clustered, the reference sequence for each cluster will be given the name of the
             cluster. Consequently, the output file can be used subsequently as input to --reference-sequences""")
-    analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
-            help="""Generate a separate file for each of the analysis patterns (default: call_only=%(default)s)""")
 
     # Iterative clustering settings
     #should make this mutually exclusive with other specifications of reference sequence
@@ -220,7 +225,7 @@ def setup_analyze_args(subparsers):
             cluster that the consensus reflects hypermutation patterns. Clusters smaller than this value will
             be merged with the nearest cluster until no clusters are left""")
 
-    # Set analysis default arguments
+    # Apply analysis defaults
     for arg, default in analysis_defaults.iteritems():
         try:
             analyze_args.set_defaults(**dict([(arg, default)]))
