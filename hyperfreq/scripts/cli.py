@@ -181,49 +181,53 @@ def setup_analyze_args(subparsers):
     prior_group.add_argument('--uniform', help='Uniform prior (1.0, 1.0) on Beta distributions.', action='store_const',
             dest='prior', const=(1.0, 1.0))
 
-    refseq_group = analyze_args.add_argument_group('REFERENCE SEQS / CLUSTERING')
+    refseq_group = analyze_args.add_argument_group('REFERENCE SEQS',
+            """Hyperfreq requires each query sequence have a reference sequence for comparison. This
+            sequence should be evolutionarily close while not exhibiting a hypermutation pattern.
+            By default, hyperfreq computes this sequence as global consensus from the query
+            alignment. You can also manually specify reference sequences and compute them from clusters
+            of sequences (see the ITERATIVE CLUSTERING SETTINGS group for automatic identification of
+            clusters).""")
     refseq_group.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
-            help="CSV file mapping sequences to clusters")
+            help="""CSV file mapping sequences to clusters; cluster consensus sequences will be used as query
+            sequences. Any sequences not mapped to a cluster will be implicity put in an 'all' cluster.""")
     # Should make this smarter so that it guesses a few things first...
     refseq_group.add_argument('--cluster-col', default='cluster',
-            help="Column in cluster_map file to be used for cluster specification")
+            help="Column in cluster-map to be used for cluster specification")
     refseq_group.add_argument('--consensus-threshold', type=float,
-            help="""Used for computing consensus sequences as reference sequences for HM evaluation when 
-            reference sequences are not explicity specified. See biopython's
-            AlignInfo.SummmaryInfo.dumb_consensus function. (default: %(default)s; no threshold, most frequent
-            base is taken)""")
+            help="""For computing consensus sequences. See biopython's AlignInfo.SummmaryInfo.dumb_consensus
+            method. (default: %(default)s; no threshold, most frequent base taken)""")
     # Should remove necessity for "all" and just take the first, if no matches (with warning?)
     refseq_group.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
-            help="""If specified, use the reference sequences in this file for comparison instead of consensus
-            sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
-            ensure that there is a sequence named 'all' in your reference_sequences alignment.
+            help="""Manually specify reference sequences. Sequence name(s) should correspond to cluster names
+            if using a cluster map. Otherwise, ensure a sequence named 'all' is included in the alignment.
             Clusters for which no reference sequence is specified will be compared to a computed consensus
-            sequence as reference.""")
+            sequence.""")
     refseq_group.add_argument('-R', '--write-references', default=False, action='store_true',
-            help="""Writes reference sequences (typically consensus sequences) used for HM evalutation. If
-            sequences are clustered, the reference sequence for each cluster will be given the name of the
-            cluster. Consequently, the output file can be used subsequently as input to --reference-sequences""")
+            help="""Writes reference sequences used for HM evalutation. If sequences are clustered, the
+            reference sequence for each cluster will be given the name of the cluster. Consequently, the
+            output file can be used subsequently as input to --reference-sequences""")
 
-    # Iterative clustering settings
-    #should make this mutually exclusive with other specifications of reference sequence
-    #-M --min-per-cluster-percent
-    #-C --write-intermediate-clusters
-    #-g --global-cons-first
-    analyze_args.add_argument('-t', '--cluster-threshold', type=float,
-            help="""If specified, computes clusters from the input data, iteratively removing columns
-            suspected of hypermutation and reclustering so tha tcluster structure is not effected by supposed
-            hypermutation.""")
-    analyze_args.add_argument('-i', '--cluster-iterations', type=int, default=5,
-            help="""If iterative hypermutation evaluation is to be performed, this specifies the number of
-            iterations""")
-    analyze_args.add_argument('-I', '--recentering-iterations', type=int, default=4,
+    # make some mutually exclusive with refseq spec methods; other future options
+    # -M --min-per-cluster-percent; -C --write-intermediate-clusters; -g --global-cons-first
+    autoclst_group = analyze_args.add_argument_group('ITERATIVE CLUSTERING SETTINGS',
+            """Use hyperfreq's iterative clustering strategy to find reference sequences. This involves
+            iterations of hypermutation analysis, removal of hypermutated columns from alignment, and
+            clustering of these 'HM free' alignments, so that clusters don't reflect hypermutation within the
+            data.""")
+    autoclst_group.add_argument('-t', '--cluster-threshold', type=float,
+            help="""[Required for iterative clustering] If specified, triggers the iterative clustering
+            algorithm with the given clustering similarity threshold.""")
+    autoclst_group.add_argument('-i', '--cluster-iterations', type=int, default=5,
+            help="""Number of iterations of hm analysis and clustering.""")
+    autoclst_group.add_argument('-I', '--recentering-iterations', type=int, default=4,
             help="""Not to be confused with --cluster-iterations, this specifies the number of recentering
-            cluster iterations within each outer clustering/hm-evaluation iteration.""")
-    analyze_args.add_argument('-m', '--min-per-cluster', type=int, default=5,
-            help="""This value specifies the minimum number of sequences in a cluster. This should be
-            specified in order to avoid comparing a query sequence to a consensus sequence for a small enough
-            cluster that the consensus reflects hypermutation patterns. Clusters smaller than this value will
-            be merged with the nearest cluster until no clusters are left""")
+            steps to perform for each clustering step (inspired by http://goo.gl/RIoWBU).""")
+    autoclst_group.add_argument('-m', '--min-per-cluster', type=int, default=5,
+            help="""This value specifies the minimum number of sequences in a cluster. Clusters smaller than
+            this value will be merged with the closest cluster until not small clusters are left. This avoids
+            comparing a query sequence to a consensus sequence for a small enough cluster that the consensus
+            reflects hypermutation patterns.""")
 
     # Apply analysis defaults
     for arg, default in analysis_defaults.iteritems():
