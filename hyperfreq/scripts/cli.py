@@ -61,7 +61,7 @@ def analyze(args):
     else:
         reference_sequences = None
 
-    # This lets the cluster map be aptional, so that this script can be used
+    # This lets the cluster map be optional, so that this script can be used
     # for naive hm filtering/analysis
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
