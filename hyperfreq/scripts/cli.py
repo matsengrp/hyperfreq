@@ -82,6 +82,7 @@ def analyze(args):
             clustering = alnclst.Clustering(hm_neg_aln, args.cluster_threshold,
                     args.consensus_threshold)
             clustering = clustering.recenter(args.recentering_iterations)
+            clustering.merge_small_clusters(args.min_per_cluster)
             cluster_map = parse_clusters(clustering.mapping_iterator(), cluster_key=0, sequence_key=1)
             # Create the Alignment set
             clustered_alignment = HyperfreqAlignment.Set(seq_records, cluster_map,
