@@ -88,6 +88,9 @@ def analyze(args):
             clustered_alignment = HyperfreqAlignment.Set(seq_records, cluster_map,
                     consensus_threshold=args.consensus_threshold)
             analysis = clustered_alignment.multiple_context_analysis(patterns, **analysis_settings)
+        # write out the final clusters
+        clusterout_handle = file(prefix + '.clst.csv', 'w')
+        clustering.write(clusterout_handle)
 
     # Write the final analysis to file
     write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)

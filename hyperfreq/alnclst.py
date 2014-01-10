@@ -79,6 +79,13 @@ class Clustering(object):
                     consensus_threshold=clustering.consensus_threshold)
         return clustering
 
+    def write(self, handle):
+        out_writer = csv.writer(handle)
+        out_writer.writerow(('cluster_id', 'sequence', 'distance'))
+        for row in self.mapping_iterator():
+            out_writer.writerow(row)
+        handle.close()
+
 
 class Cluster(object):
     """This class represents a specific cluster. Initally, gets stamped out just with a representative
@@ -161,13 +168,9 @@ def main():
         clustering.merge_small_clusters(args.min_per_cluster)
         print "Finished Merging small clusters"
 
-    # Setup outputs
-    out_writer = csv.writer(args.output)
-    out_writer.writerow(('cluster_id', 'sequence', 'distance'))
-    for row in clustering.mapping_iterator():
-        out_writer.writerow(row)
+    # Write output
+    clustering.write(args.output)
 
-    args.output.close()
 
 
 if __name__ == '__main__':
