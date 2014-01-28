@@ -7,6 +7,8 @@ alias anal='python -m hyperfreq.scripts.cli analyze tests/data/alignment.fasta -
 anal -h
 echo "Simple test"
 anal --prefix simple -q 0.5
+echo "Alnclst test"
+anal --prefix alnclst -t 0.04 -m 3
 echo "Simple cdfs"
 anal --prefix simple_cdfs --cdfs 1.0 2.0
 echo "Cluster test"
