@@ -24,3 +24,5 @@ alias split='python -m hyperfreq.scripts.cli split tests/data/alignment.fasta --
 
 echo "Simple split"
 split tests/out/simple.sites.csv --prefix simple
+echo "Cluster split (with no hm_pos...)"
+split tests/out/clustered.sites.csv --prefix clustered
