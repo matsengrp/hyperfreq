@@ -3,6 +3,7 @@
 import csv
 import os
 import logging
+import copy
 
 
 BASE_COLNAMES = ['sequence', 'hm_pos', 'cutoff_cdf', 'map', 'ltmap', 'fisher_pvalue',
@@ -18,8 +19,9 @@ def quant_namer(quant):
 
 class AnalysisWriter(object):
     def __init__(self, prefix, pattern_name, quants, cdfs):
+
         # Go through and make the appropriate colnames
-        colnames = BASE_COLNAMES
+        colnames = copy.copy(BASE_COLNAMES)
         if pattern_name == "call":
             colnames.insert(2, 'call_pattern')
         colnames += ["q_{0}".format(q) for q in quants]
