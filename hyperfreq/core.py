@@ -1,7 +1,6 @@
 from Bio import Align, SeqRecord, Seq
 from Bio.Align import AlignInfo
 from betarat import BetaRat
-from collections import OrderedDict
 from time import time
 
 import itertools
@@ -170,7 +169,7 @@ class Alignment(Align.MultipleSeqAlignment):
 
         # Construct the dict we'll be returning for this sequence and pattern (will need to add cdfs and so on
         # to it)
-        hm_data = OrderedDict(
+        hm_data = dict(
                 sequence=seq.name,
                 hm_pos=hm_pos,
                 cutoff_cdf=cutoff_cdf,
