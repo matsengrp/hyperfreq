@@ -1,6 +1,6 @@
 import unittest
 import helpers
-from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
+from hyperfreq.core import Alignment
 
 class TestBasicSplit(unittest.TestCase):
     def assertSeqsEqual(self, seq_record, string):
@@ -18,7 +18,7 @@ class TestBasicSplit(unittest.TestCase):
         ATCAATCAGTCAATCG
         ATCAATCAGTCAATCG"""
         self.seqs = helpers.parse_fasta_list(aln_string)
-        self.aln = HyperfreqAlignment(self.seqs)
+        self.aln = Alignment(self.seqs)
 
     def test_manual_split(self):
         columns = [1, 2, 3, 5]

@@ -1,3 +1,4 @@
-from hyperfreq_alignment import VERBOSE, HyperfreqAlignment
+from core import VERBOSE, Alignment, AlignmentSet
 from version import __version__
 import mut_pattern
+import cluster

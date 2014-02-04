@@ -67,12 +67,12 @@ For more thorough usage, run `hyperfreq split -h` at the command line.
 
 If you want to write your own scripts, you can do so by importing the appropraite modules
 
-    from hyperfreq import HyperfreqAlignment
+    from hyperfreq import Alignment
     from Bio import SeqIO
 
     # Create a hyperfreq alignment object
     seqs = SeqIO.parse('some_file.fasta', 'fasta')
-    aln = HyperfreqAlignment(seqs)
+    aln = Alignment(seqs)
 
     # Obtain an analysis generator which can be iterated over.
     analysis = aln.analyze()

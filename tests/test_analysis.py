@@ -1,7 +1,7 @@
 import unittest
 import helpers
 from Bio import Seq
-from hyperfreq.hyperfreq_alignment import HyperfreqAlignment
+from hyperfreq.core import Alignment, AlignmentSet
 from hyperfreq.cluster import load_cluster_map
 from hyperfreq import mut_pattern
 
@@ -21,7 +21,7 @@ class TestBasicAnalysis(unittest.TestCase):
         ATCAATCAGTCAATCACCCC
         """
         self.seqs = helpers.parse_fasta(aln_string)
-        self.aln = HyperfreqAlignment(self.seqs.values())
+        self.aln = Alignment(self.seqs.values())
 
     def test_consensus_reference(self):
         self.assertEqual(str(self.aln.reference_sequence), 'GTCAGTCAGTCAGTCACCCC')
@@ -54,7 +54,7 @@ class TestMutCounts(unittest.TestCase):
         GGTAACACT
         """
         ref_seq = Seq.Seq('GGTGACGCT')
-        self.aln = HyperfreqAlignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
+        self.aln = Alignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
 
     def __test_counts__(self, pattern, real_counts):
         for result in self.aln.analyze(pattern):
@@ -103,7 +103,7 @@ class TestCallPatterns(unittest.TestCase):
         ref_seq = Seq.Seq('GA'*9 + 'GC'*6 + 'GT'*15)
         query_seq = 'AA'*4 + 'GA'*5 + 'AC' + 'GC'*5 + 'GT'*15
         aln_string = '>seq1\n{0}'.format(query_seq)
-        self.aln = HyperfreqAlignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
+        self.aln = Alignment(helpers.parse_fasta(aln_string).values(), reference_sequence=ref_seq)
         self.mutation_patterns=[mut_pattern.GA, mut_pattern.GM]
 
     def test_map_caller(self):
@@ -160,7 +160,7 @@ class TestAlignmentSet(unittest.TestCase):
         self.seqs = helpers.parse_fasta(aln_string)
 
     def test_without_cluster_map(self):
-        aln_set = HyperfreqAlignment.Set(self.seqs)
+        aln_set = AlignmentSet(self.seqs)
         self.assertEqual(len(aln_set.clusters), 1)
         self.assertEqual(len(aln_set.cluster_alns), 1)
         self.assertIn('all', aln_set.cluster_alns)
@@ -172,7 +172,7 @@ class TestAlignmentSet(unittest.TestCase):
                 self.assertFalse(hm_pos)
 
     def test_with_cluster_map(self):
-        aln_set = HyperfreqAlignment.Set(self.seqs, cluster_map=self.cluster_map)
+        aln_set = AlignmentSet(self.seqs, cluster_map=self.cluster_map)
         self.assertEqual(len(aln_set.clusters), 2)
         self.assertEqual(len(aln_set.cluster_alns), 2)
         for result in aln_set.multiple_context_analysis([old_pattern]):
@@ -189,7 +189,7 @@ class TestAlignmentSet(unittest.TestCase):
         >cluster2
         CCTTGGCCGGTTGGCCGCCC
         """)
-        aln_set = HyperfreqAlignment.Set(self.seqs, cluster_map=self.cluster_map,
+        aln_set = AlignmentSet(self.seqs, cluster_map=self.cluster_map,
             reference_sequences=ref_seqs)
         self.assertEqual(len(aln_set.clusters), 2)
         for result in aln_set.multiple_context_analysis([old_pattern]):
@@ -218,7 +218,7 @@ class TestContextBasedEvaluation(unittest.TestCase):
         ref_seq = helpers.parse_fasta("""
         >all
         GGGGGGGGGTGTGTGTGT""")
-        self.aln = HyperfreqAlignment(helpers.parse_fasta("""
+        self.aln = Alignment(helpers.parse_fasta("""
         >seq1
         GGGGGGGGGTGTGTGTGT
         >seq2

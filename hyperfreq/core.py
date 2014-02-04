@@ -58,7 +58,7 @@ def make_pattern_call(analyses, caller):
 
 
 
-class HyperfreqAlignment(Align.MultipleSeqAlignment):
+class Alignment(Align.MultipleSeqAlignment):
 
     def __init__(self, *args, **kwargs):
         """This inherits from biopythons MultipleSeqAlignment, and does basically the same stuff, but also
@@ -77,7 +77,7 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
 
         consensus_threshold = strip_option('consensus_threshold')
         ref_seq = strip_option('reference_sequence')
-        super(HyperfreqAlignment, self).__init__(*args, **kwargs)
+        super(Alignment, self).__init__(*args, **kwargs)
         if consensus_threshold and ref_seq:
             raise ValueError, "Only one of reference_sequence or consensus_threshold should be specified"
         # reference sequence should be manually re-specified if this need to be changed
@@ -232,46 +232,46 @@ class HyperfreqAlignment(Align.MultipleSeqAlignment):
         return self
 
 
-    class Set:
-        """This class organizes the logic of dealing with clustered alignments in a cohesive fashion, so that
-        each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
-        for the entire alignment."""
-        def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None,
-                consensus_threshold=None):
-            """Only required argument is seq_records, which should be a dictionary mapping sequence names to
-            SeqRecord objects. The optional cluster map specifie how these sequences partition into
-            clusters; if unspecified, everything is take as one cluster named "all". Other options:
+class AlignmentSet:
+    """This class organizes the logic of dealing with clustered alignments in a cohesive fashion, so that
+    each cluster alignmnet can be evaluated with respect to it's own consensus, and the results compiled
+    for the entire alignment."""
+    def __init__(self, seq_records, cluster_map=None, clusters=None, reference_sequences=None,
+            consensus_threshold=None):
+        """Only required argument is seq_records, which should be a dictionary mapping sequence names to
+        SeqRecord objects. The optional cluster map specifie how these sequences partition into
+        clusters; if unspecified, everything is take as one cluster named "all". Other options:
 
-            * clusters: specify which of the clusters to keep. None defaults to all clusters present.
-            * [reference_sequences | consensus_threshold]: Only one of these should be specified.
-                  - reference_sequences: a dict mapping cluster names to sequences.
-                  - consensus_threshold: a float or None; passed to AlignInfo's dumb_consensus function.
-                  By default consensus sequences are used with no threshold if both options are unset.
-            """
-            self.seq_records = seq_records
-            self.cluster_map = cluster_map if cluster_map else {'all': seq_records.keys()}
-            self.clusters = clusters if clusters else self.cluster_map.keys()
-            self.cluster_alns = {}
-            for cluster in self.clusters:
-                cluster_seqs = [self.seq_records[x] for x in self.cluster_map[cluster]]
-                missing_ref_seqs = []
-                try:
-                    ref_seq = reference_sequences[cluster].seq if reference_sequences else None
-                except KeyError:
-                    missing_ref_seqs.append(cluster)
-                    ref_seq = None
-                self.cluster_alns[cluster] = HyperfreqAlignment(cluster_seqs, reference_sequence=ref_seq,
-                        consensus_threshold=consensus_threshold)
-            if len(missing_ref_seqs) > 0:
-                warnings.warn("Clusters missing representatives: " + ', '.join(missing_ref_seqs))
-            self.contexts = set()
+        * clusters: specify which of the clusters to keep. None defaults to all clusters present.
+        * [reference_sequences | consensus_threshold]: Only one of these should be specified.
+              - reference_sequences: a dict mapping cluster names to sequences.
+              - consensus_threshold: a float or None; passed to AlignInfo's dumb_consensus function.
+              By default consensus sequences are used with no threshold if both options are unset.
+        """
+        self.seq_records = seq_records
+        self.cluster_map = cluster_map if cluster_map else {'all': seq_records.keys()}
+        self.clusters = clusters if clusters else self.cluster_map.keys()
+        self.cluster_alns = {}
+        for cluster in self.clusters:
+            cluster_seqs = [self.seq_records[x] for x in self.cluster_map[cluster]]
+            missing_ref_seqs = []
+            try:
+                ref_seq = reference_sequences[cluster].seq if reference_sequences else None
+            except KeyError:
+                missing_ref_seqs.append(cluster)
+                ref_seq = None
+            self.cluster_alns[cluster] = Alignment(cluster_seqs, reference_sequence=ref_seq,
+                    consensus_threshold=consensus_threshold)
+        if len(missing_ref_seqs) > 0:
+            warnings.warn("Clusters missing representatives: " + ', '.join(missing_ref_seqs))
+        self.contexts = set()
 
 
-        @apply_analysis_defaults
-        def multiple_context_analysis(self, patterns, **kw_args):
-            """Run the analysis for each cluster's HyperfreqAlignment. Any keyword arguments passed to this
-            function get passed along to the individual function."""
-            return itertools.chain(*(aln.multiple_context_analysis(patterns, **kw_args) for aln in
-                    self.cluster_alns.values()))
+    @apply_analysis_defaults
+    def multiple_context_analysis(self, patterns, **kw_args):
+        """Run the analysis for each cluster's Alignment. Any keyword arguments passed to this
+        function get passed along to the individual function."""
+        return itertools.chain(*(aln.multiple_context_analysis(patterns, **kw_args) for aln in
+                self.cluster_alns.values()))
 
 

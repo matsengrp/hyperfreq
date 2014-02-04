@@ -7,7 +7,7 @@ from os import path
 from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map, parse_clusters
-from hyperfreq.hyperfreq_alignment import HyperfreqAlignment, analysis_defaults
+from hyperfreq.core import Alignment, AlignmentSet, analysis_defaults
 from hyperfreq import mut_pattern, hyperfreq_alignment, __version__
 from hyperfreq.analysis_writer import write_analysis
 
@@ -18,7 +18,7 @@ def split(args):
     hm_columns = list(set(hm_columns))
 
     seq_records = SeqIO.parse(args.alignment, 'fasta')
-    aln = HyperfreqAlignment(seq_records)
+    aln = Alignment(seq_records)
     aln.split_hypermuts(hm_columns = hm_columns)
 
     fn_base = path.join(args.out_dir, args.prefix)
@@ -64,7 +64,7 @@ def analyze(args):
     # This lets the cluster map be optional, so that this script can be used
     # for naive hm filtering/analysis
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
-    alignments = HyperfreqAlignment.Set(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
+    alignments = AlignmentSet(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
             reference_sequences=reference_sequences)
 
     # Create the analysis generator
@@ -77,7 +77,7 @@ def analyze(args):
             hm_columns = []
             for result in analysis:
                 hm_columns += result['call']['mut_columns']
-            hm_neg_aln = HyperfreqAlignment(seq_records.values()).split_hypermuts(hm_columns).hm_neg_aln
+            hm_neg_aln = Alignment(seq_records.values()).split_hypermuts(hm_columns).hm_neg_aln
             # Cluster with the specified settings
             clustering = alnclst.Clustering(hm_neg_aln, args.cluster_threshold,
                     args.consensus_threshold)
@@ -85,7 +85,7 @@ def analyze(args):
             clustering.merge_small_clusters(args.min_per_cluster)
             cluster_map = parse_clusters(clustering.mapping_iterator(), cluster_key=0, sequence_key=1)
             # Create the Alignment set
-            clustered_alignment = HyperfreqAlignment.Set(seq_records, cluster_map,
+            clustered_alignment = AlignmentSet(seq_records, cluster_map,
                     consensus_threshold=args.consensus_threshold)
             analysis = clustered_alignment.multiple_context_analysis(patterns, **analysis_settings)
         # write out the final clusters
