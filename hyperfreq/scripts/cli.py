@@ -2,10 +2,11 @@
 
 import argparse
 import csv
+import alnclst
 from os import path
 from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
-from hyperfreq.cluster import load_cluster_map
+from hyperfreq.cluster import load_cluster_map, parse_clusters
 from hyperfreq.hyperfreq_alignment import HyperfreqAlignment, analysis_defaults
 from hyperfreq import mut_pattern, hyperfreq_alignment, __version__
 from hyperfreq.analysis_writer import write_analysis
@@ -42,27 +43,57 @@ def write_reference_seqs(alignments, fn_base):
 
 
 def analyze(args):
+    import logging; logging.captureWarnings(True)
+    # Fetch sequence records and analysis patterns
     seq_records = SeqIO.to_dict(SeqIO.parse(args.alignment, 'fasta'))
+    patterns = [mut_pattern.patterns[p] for p in args.patterns]
+    pattern_names = [p.name for p in patterns]
+    prefix = path.join(args.out_dir, args.prefix)
+    analysis_settings = dict(
+            rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
+            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
+
+    # Need to think about how best to fork things here; for instance, might make sense to let the user specify
+    # the initial clusters for whatever reason... However, specifying the reference sequences shouldn't make
+    # any sense there
     if args.reference_sequences:
         reference_sequences = SeqIO.to_dict(SeqIO.parse(args.reference_sequences, 'fasta'))
     else:
         reference_sequences = None
 
-    # This lets the cluster map be aptional, so that this script can be used
+    # This lets the cluster map be optional, so that this script can be used
     # for naive hm filtering/analysis
     cluster_map = load_cluster_map(args.cluster_map, cluster_col=args.cluster_col) if args.cluster_map else None
     alignments = HyperfreqAlignment.Set(seq_records, cluster_map, consensus_threshold=args.consensus_threshold,
             reference_sequences=reference_sequences)
-    patterns = [mut_pattern.patterns[p] for p in args.patterns]
-    
-    # Create the analysis generator, and run it as we write out to files
-    analysis = alignments.multiple_context_analysis(patterns,
-            rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
-            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
-    prefix = path.join(args.out_dir, args.prefix)
-    pattern_names = [p.name for p in patterns]
-    write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)
 
+    # Create the analysis generator
+    analysis = alignments.multiple_context_analysis(patterns, **analysis_settings)
+
+    if args.cluster_threshold:
+        for hm_it in range(args.cluster_iterations - 1):
+            print " ..On hm/cluster iteration", hm_it
+            # Grab the HM columns from the most recent analysis and split out the pos sites
+            hm_columns = []
+            for result in analysis:
+                hm_columns += result['call']['mut_columns']
+            hm_neg_aln = HyperfreqAlignment(seq_records.values()).split_hypermuts(hm_columns).hm_neg_aln
+            # Cluster with the specified settings
+            clustering = alnclst.Clustering(hm_neg_aln, args.cluster_threshold,
+                    args.consensus_threshold)
+            clustering = clustering.recenter(args.recentering_iterations)
+            clustering.merge_small_clusters(args.min_per_cluster)
+            cluster_map = parse_clusters(clustering.mapping_iterator(), cluster_key=0, sequence_key=1)
+            # Create the Alignment set
+            clustered_alignment = HyperfreqAlignment.Set(seq_records, cluster_map,
+                    consensus_threshold=args.consensus_threshold)
+            analysis = clustered_alignment.multiple_context_analysis(patterns, **analysis_settings)
+        # write out the final clusters
+        clusterout_handle = file(prefix + '.clst.csv', 'w')
+        clustering.write(clusterout_handle)
+
+    # Write the final analysis to file
+    write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)
     if args.write_references:
         write_reference_seqs(alignments, prefix)
 
@@ -116,24 +147,36 @@ def setup_analyze_args(subparsers):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             description='Analyze alignment for evidence of hypermuation')
     setup_common_args(analyze_args)
+    analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
+            help="""Generate a separate file for each of the analysis patterns instead of just the call
+            pattern (default: call_only=%(default)s)""")
+
+    eval_group = analyze_args.add_argument_group('HM EVALUATION SETTINGS')
     # Should we get this to be smarter about whether to write out a call file when only one analysis is run?
     pattern_choices = mut_pattern.patterns.keys()
-    analyze_args.add_argument('-p', '--patterns', choices=pattern_choices, default=['GG'], nargs='+',
+    eval_group.add_argument('-p', '--patterns', choices=pattern_choices, default=['GG'], nargs='+',
             help="""Specify the type of apobec activity to analyze. For example, 'GG' specifies
             a focus pattern of GG to AG, characteristic of APOBEC3G activity. Multiple patterns should be
             separated by spaces. Characters M, R and V correspond to IUPAC codes.""")
-    analyze_args.add_argument('--rpr-cutoff', type=float,
+    eval_group.add_argument('--rpr-cutoff', type=float,
             help="""For hm_pos determination: if a sequence has a RPR higher than this value with confidence
             specified by --significance-level, it will be marked as hypermutation positive.""")
-    analyze_args.add_argument('-s', '--significance-level', type=float,
+    eval_group.add_argument('-s', '--significance-level', type=float,
             help="""For hm_pos determination: if, with this specified level of confidence, a sequence has a RPR
             higher than the specified rpr_cutoff, it will be marked as hypermutation positive.""")
-    QuantAction.register(analyze_args)
-    analyze_args.add_argument('--cdfs', nargs="+", type=float,
+    QuantAction.register(eval_group)
+    eval_group.add_argument('--cdfs', nargs="+", type=float,
             help="""Specify cdfs to be computed (separated by spaces). These are computed in addition to the
             CDF of the rpr-cutoff, as described above.""")
+    eval_group.add_argument('--caller',
+            help="""Statistic to be used for deciding which mutation pattern has the strongest hypermutation
+            signal. The choice specified should be the name of a column in the output file, such as "map",
+            "cutoff_cdf" or "q_0.05". Note: the value must exist for each sequence and call pattern analyzed.
+            As such, you must use the `-Q` flag (for computing all quantiles) if you wish to call based on
+            quantiles.""")
 
-    prior_group = analyze_args.add_mutually_exclusive_group()
+    prior_group = analyze_args.add_argument_group('PRIORS')
+    prior_group = prior_group.add_mutually_exclusive_group()
     prior_group.add_argument('--prior', type=float, nargs=2,
             help="""Prior on Beta distributions. The default (%(default)s) corresponds to a belief that
             mutations are relatively rare, but unbiased with respect to context.""")
@@ -142,35 +185,55 @@ def setup_analyze_args(subparsers):
     prior_group.add_argument('--uniform', help='Uniform prior (1.0, 1.0) on Beta distributions.', action='store_const',
             dest='prior', const=(1.0, 1.0))
 
-    analyze_args.add_argument('--caller',
-            help="""Statistic to be used for deciding which mutation pattern has the strongest hypermutation
-            signal. The choice specified should be the name of a column in the output file, such as "map",
-            "cutoff_cdf" or "q_0.05". Note: the value must exist for each sequence and call pattern analyzed.
-            As such, you must use the `-Q` flag (for computing all quantiles) if you wish to call based on
-            quantiles.""")
-    analyze_args.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
-            help="CSV file mapping sequences to clusters")
+    refseq_group = analyze_args.add_argument_group('REFERENCE SEQS',
+            """Hyperfreq requires each query sequence have a reference sequence for comparison. This
+            sequence should be evolutionarily close while not exhibiting a hypermutation pattern.
+            By default, hyperfreq computes this sequence as global consensus from the query
+            alignment. You can also manually specify reference sequences and compute them from clusters
+            of sequences (see the ITERATIVE CLUSTERING SETTINGS group for automatic identification of
+            clusters).""")
+    refseq_group.add_argument('-c', '--cluster-map', type=argparse.FileType('r'),
+            help="""CSV file mapping sequences to clusters; cluster consensus sequences will be used as query
+            sequences. Any sequences not mapped to a cluster will be implicity put in an 'all' cluster.""")
     # Should make this smarter so that it guesses a few things first...
-    analyze_args.add_argument('--cluster-col', default='cluster',
-            help="Column in cluster_map file to be used for cluster specification")
-    analyze_args.add_argument('--consensus-threshold', type=float,
-            help="""Used for computing consensus sequences as reference sequences for HM evaluation when 
-            reference sequences are not explicity specified. See biopython's
-            AlignInfo.SummmaryInfo.dumb_consensus function. (default: %(default)s; no threshold, most frequent
-            base is taken)""")
+    refseq_group.add_argument('--cluster-col', default='cluster',
+            help="Column in cluster-map to be used for cluster specification")
+    refseq_group.add_argument('--consensus-threshold', type=float,
+            help="""For computing consensus sequences. See biopython's AlignInfo.SummmaryInfo.dumb_consensus
+            method. (default: %(default)s; no threshold, most frequent base taken)""")
     # Should remove necessity for "all" and just take the first, if no matches (with warning?)
-    analyze_args.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
-            help="""If specified, use the reference sequences in this file for comparison instead of consensus
-            sequences. Sequence name(s) should be the names of the clusters if using a cluster map. Otherwise,
-            ensure that there is a sequence named 'all' in your reference_sequences alignment.
+    refseq_group.add_argument('-r', '--reference-sequences', type=argparse.FileType('r'),
+            help="""Manually specify reference sequences. Sequence name(s) should correspond to cluster names
+            if using a cluster map. Otherwise, ensure a sequence named 'all' is included in the alignment.
             Clusters for which no reference sequence is specified will be compared to a computed consensus
-            sequence as reference.""")
-    analyze_args.add_argument('-R', '--write-references', default=False, action='store_true',
-            help="""Writes reference sequences (typically consensus sequences) used for HM evalutation. If
-            sequences are clustered, the reference sequence for each cluster will be given the name of the
-            cluster. Consequently, the output file can be used subsequently as input to --reference-sequences""")
-    analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
-            help="""Generate a separate file for each of the analysis patterns (default: call_only=%(default)s)""")
+            sequence.""")
+    refseq_group.add_argument('-R', '--write-references', default=False, action='store_true',
+            help="""Writes reference sequences used for HM evalutation. If sequences are clustered, the
+            reference sequence for each cluster will be given the name of the cluster. Consequently, the
+            output file can be used subsequently as input to --reference-sequences""")
+
+    # make some mutually exclusive with refseq spec methods; other future options
+    # -M --min-per-cluster-percent; -C --write-intermediate-clusters; -g --global-cons-first
+    autoclst_group = analyze_args.add_argument_group('ITERATIVE CLUSTERING SETTINGS',
+            """Use hyperfreq's iterative clustering strategy to find reference sequences. This involves
+            iterations of hypermutation analysis, removal of hypermutated columns from alignment, and
+            clustering of these 'HM free' alignments, so that clusters don't reflect hypermutation within the
+            data.""")
+    autoclst_group.add_argument('-t', '--cluster-threshold', type=float,
+            help="""[Required for iterative clustering] If specified, triggers the iterative clustering
+            algorithm with the given clustering similarity threshold.""")
+    autoclst_group.add_argument('-i', '--cluster-iterations', type=int, default=5,
+            help="""Number of iterations of hm analysis and clustering.""")
+    autoclst_group.add_argument('-I', '--recentering-iterations', type=int, default=4,
+            help="""Not to be confused with --cluster-iterations, this specifies the number of recentering
+            steps to perform for each clustering step (inspired by http://goo.gl/RIoWBU).""")
+    autoclst_group.add_argument('-m', '--min-per-cluster', type=int, default=5,
+            help="""This value specifies the minimum number of sequences in a cluster. Clusters smaller than
+            this value will be merged with the closest cluster until not small clusters are left. This avoids
+            comparing a query sequence to a consensus sequence for a small enough cluster that the consensus
+            reflects hypermutation patterns.""")
+
+    # Apply analysis defaults
     for arg, default in analysis_defaults.iteritems():
         try:
             analyze_args.set_defaults(**dict([(arg, default)]))
