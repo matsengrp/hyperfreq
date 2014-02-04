@@ -239,7 +239,7 @@ def setup_analyze_args(subparsers):
             analyze_args.set_defaults(**dict([(arg, default)]))
         except KeyError:
             print "{} is not an args option".format(arg)
-    analyze_args.set_defaults(prefix='hyperfreq_analysis')
+    analyze_args.set_defaults(prefix='hm_analysis')
     analyze_args.set_defaults(func=analyze)
 
 
@@ -251,7 +251,7 @@ def setup_split_args(subparsers):
             output file from running `hyperfreq analyze`, but you can contruct your own file if you like.""")
     split_args.add_argument('--column-name', default='column',
             help="""Column name in the columns file which identifies the hypermutated sites.""")
-    split_args.set_defaults(prefix='hyperfreq_split')
+    split_args.set_defaults(prefix='hm_split')
     split_args.set_defaults(func=split)
 
 
