@@ -18,7 +18,7 @@ def strgfy_seqish(seqish):
 class MutPattern(object):
 
     def build_regexp(self, i, negate_mut=False, context=True):
-        """ Here `i` effectively controls whether this is the reference_seq regex (i=0) or the query_seq
+        """Here `i` effectively controls whether this is the reference_seq regex (i=0) or the query_seq
         (i=1). Negate decides whether we want to capture the pos mutation or the negative (only sensible for
         i=1)."""
         mut = negate_mut_regexp(self.mutation[i]) if negate_mut else self.mutation[i]

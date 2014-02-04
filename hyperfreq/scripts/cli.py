@@ -115,10 +115,9 @@ def setup_common_args(subparser):
 
 
 class QuantAction(argparse.Action):
-    """ This class is for doing some slick command line magick with specification of what quantiles to compute
-    and how """
-    # XXX - review: This solution to the problem leaves q around in namespace, and admittedly is a little
-    # weird. Will have to poll thoughts
+    """This class is for doing some slick command line magick with specification of what quantiles to compute
+    and how"""
+    # This solution to the problem leaves q around in namespace, and admittedly is a little weird.
     default_quants = [0.05]
 
     def __call__(self, parser, namespace, values, option_string=None):

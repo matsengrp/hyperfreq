@@ -202,7 +202,7 @@ class Alignment(Align.MultipleSeqAlignment):
 
 
     def split_hypermuts(self, hm_columns):
-        '''Produce the hypermut positive and hypermut negative alignments'''
+        """Produce the hypermut positive and hypermut negative alignments"""
         hm_indices = list(set(map(lambda n: n - 1, hm_columns)))
         hm_indices.sort()
 
