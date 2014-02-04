@@ -176,7 +176,7 @@ class Alignment(Align.MultipleSeqAlignment):
                 cutoff_cdf=cutoff_cdf,
                 map=br_map,
                 ltmap=br_ltmap,
-                fisher=fisher_pvalue,
+                fisher_pvalue=fisher_pvalue,
                 focus_pos=focus_pos,
                 focus_neg=focus_neg,
                 control_pos=control_pos,
