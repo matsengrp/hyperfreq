@@ -2,7 +2,7 @@
 
 import argparse
 import csv
-from hyperfreq import alnclst
+import alnclst
 from os import path
 from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -72,7 +72,7 @@ def analyze(args):
 
     if args.cluster_threshold:
         for hm_it in range(args.cluster_iterations - 1):
-            print("On hm/cluster iteration", hm_it)
+            print " ..On hm/cluster iteration", hm_it
             # Grab the HM columns from the most recent analysis and split out the pos sites
             hm_columns = []
             for result in analysis:
