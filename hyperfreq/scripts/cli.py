@@ -10,7 +10,7 @@ from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
 from hyperfreq.cluster import load_cluster_map, parse_clusters
 from hyperfreq.core import Alignment, AlignmentSet, analysis_defaults
-from hyperfreq import mut_pattern, hyperfreq_alignment, __version__
+from hyperfreq import mut_pattern, core, __version__
 from hyperfreq.analysis_writer import write_analysis
 
 
@@ -282,7 +282,7 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        hyperfreq_alignment.VERBOSE = True
+        core.VERBOSE = True
 
     args.func(args)
 
