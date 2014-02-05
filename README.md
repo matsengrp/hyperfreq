@@ -14,7 +14,7 @@ To run an analysis, use the `hyperfreq analyze` command.
 Running `hyperfreq analyze -h` will give you a full list of options.
 Here are some examples to get you started and give you a rough sense of hyperfreq's capabilities.
 
-    # Simple anlysis comparing each sequence to a consensus sequence contructed from the entire alignment
+    # Simple analysis comparing each sequence to a consensus sequence constructed from the entire alignment
     hyperfreq analyze tests/data/alignment.fasta
 
     # Instead, compare each sequence to the consensus for a cluster specified in a clusters file
@@ -65,7 +65,7 @@ For more thorough usage, run `hyperfreq split -h` at the command line.
 
 ## Library usage
 
-If you want to write your own scripts, you can do so by importing the appropraite modules
+If you want to write your own scripts, you can do so by importing the appropriate modules
 
     from hyperfreq import Alignment
     from Bio import SeqIO
@@ -83,6 +83,17 @@ If you want to write your own scripts, you can do so by importing the approprait
 
 It's also possible to define your own mutation patterns using the `MutPattern` and `MutPatternSet` classes.
 It may be possible in the future to more flexibly specify patterns more flexibly via the CLI, but for now, doing so requires using this code base as a library in writing your own scripts.
+If having this functionality available via the command line is important to you, please submit an [issue](https://github.com/fhcrc/hyperfreq/issues), and we'll see what we can do.
+
+
+## Interactive usage
+
+It is also now possible to run a `hyperfreq analyze` command with the `-N / --interactive` flag.
+This causes the program to load up an interactive python session with the `analysis` generator, instead of simply writing the results to file.
+You can enter `dir()` to see what namespaces and data have been included for you, and obviously load any libraries (numpy, biopython, etc.) that might be helpful.
+Do note though that `analysis` is a generator, so if you need to make more than one pass through the results interactively, you'll need to throw them into an list.
+
+    analysis = [result for result in analysis]
 
 
 ## Installing
@@ -97,12 +108,14 @@ Hyperfreq depends on the following python libraries
 * `biopython`
 * `fisher`
 * [`betarat`](https://github.com/fhcrc/betarat)
+* [`alnclst`](https://github.com/fhcrc/alnclst)
 
-We recommend installing betarat first, using the directions in the link above.
-Assuming you have pip installed, you should be able to install biopython and fisher with
+We recommend installing betarat and alnclst first, using the directions in the links above.
+Since alnclst requires biopython, you should now only have to install fisher.
+Assuming you have pip and the python-dev libraries installed (which you should after following the instructions above), you should be able to run
 
     # (sudo may not be necessary, depending on how you set up your python environment)
-    sudo pip install biopython fisher
+    sudo pip install fisher
 
 ### With that out of the way...
 
@@ -122,4 +135,9 @@ Now you should be able to download and install hyperfreq
 
 And there you have it!
 You can try running `hyperfreq -h` from the command line to test your installation.
+
+### Problems?
+
+If you have any trouble installing, please submit an [issue](https://github.com/fhcrc/hyperfreq/issues), so we can try to help and update the documentation.
+
 
