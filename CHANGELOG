@@ -1,7 +1,7 @@
 
 # CHANGELOG
 
-## Version 1.0 (currently in beta)
+## Version 1.0
 
 This major version bump sees the addition of many new features, and significant changes to the way we evaluate hypermutation. These features and changes include
 
@@ -13,6 +13,7 @@ This major version bump sees the addition of many new features, and significant 
 * analysis results are accessed through a generator instead of as attributes built up on the alignment object
 * specification of call pattern statistic and prior from command line
 * specification of multiple CDF and PPF (quantile) values for computation
+* interactive mode
 
 
 ## Version 0
