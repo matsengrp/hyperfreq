@@ -1,27 +1,42 @@
 
 # CHANGELOG
 
-## 0.3.2
+## Version 1.0 (currently in beta)
+
+This major version bump sees the addition of many new features, and significant changes to the way we evaluate hypermutation. These features and changes include
+
+* context based evaluation
+* use of the beta ratio distribution for modelling the relative probability ratio of mutations in two contexts (switched out difference of betas for BetaRat distributions)
+* more control over data output, and cleaner code base
+* testing for multiple mutation patterns at once, and automatic pattern calling
+* significant speed improvements achieved by deciding on hypermutation status using the CDF instead of a quantile (PPF), and computing of quantiles only if asked, and only for hypermutation positive sequences, unless otherwise specified
+* analysis results are accessed through a generator instead of as attributes built up on the alignment object
+* specification of call pattern statistic and prior from command line
+* specification of multiple CDF and PPF (quantile) values for computation
+
+
+## Version 0
+
+### 0.3.2
 
 Now possible to specify mutation pattern from CLI
 
-## 0.3.1
+### 0.3.1
 
 * Added ability to write out reference seqs
-* When loadinbg in reference seqs from a reference seqs file, seq is now stored as a Seq instead of SeqRecord for better underlying consistency
+* When loading in reference seqs from a reference seqs file, seq is now stored as a Seq instead of SeqRecord for better underlying consistency
 
-## 0.2.1
+### 0.2.1
 
 * Gross output now has hypermutated columns on a seq by seq basis.
 * Now creates reference sequence on instantiation. Can still be modified at run time by passing in different consensus_threshold
 * Pulled out method for finding context at a given residue.
 
-
-## 0.1.4
+### 0.1.4
 
 Switched out Sekhon 0.0.1 for >=0.1 (switched order of arguments to test function)
 
-
-## 0.1.3
+### 0.1.3
 
 Haven't been keeping close track up till now...
+
