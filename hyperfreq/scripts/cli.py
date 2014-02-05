@@ -3,6 +3,8 @@
 import argparse
 import csv
 import alnclst
+import code
+import copy
 from os import path
 from Bio import AlignIO, SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -92,6 +94,16 @@ def analyze(args):
         clusterout_handle = file(prefix + '.clst.csv', 'w')
         clustering.write(clusterout_handle)
 
+    if args.interactive:
+        local = copy.copy(locals())
+        import hyperfreq
+        local.update(dict(hyperfreq=hyperfreq,
+            Alignment=Alignment,
+            AlignmentSet=AlignmentSet,
+            mut_pattern=mut_pattern,
+            write_analysis=write_analysis))
+        code.interact(local=local)
+
     # Write the final analysis to file
     write_analysis(analysis, prefix, pattern_names, args.quants, args.cdfs, call_only=args.call_only)
     if args.write_references:
@@ -149,6 +161,8 @@ def setup_analyze_args(subparsers):
     analyze_args.add_argument('-F', '--full-output', default=True, action='store_false', dest='call_only',
             help="""Generate a separate file for each of the analysis patterns instead of just the call
             pattern (default: call_only=%(default)s)""")
+    analyze_args.add_argument('-N', '--interactive', default=False, action='store_true',
+            help="""Instead of writing results to file, load up analysis results into an interactive shell""")
 
     eval_group = analyze_args.add_argument_group('HM EVALUATION SETTINGS')
     # Should we get this to be smarter about whether to write out a call file when only one analysis is run?
