@@ -53,7 +53,8 @@ def analyze(args):
     prefix = path.join(args.out_dir, args.prefix)
     analysis_settings = dict(
             rpr_cutoff=args.rpr_cutoff, significance_level=args.significance_level, quants=args.quants,
-            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs)
+            pos_quants_only=args.pos_quants_only, caller=args.caller, prior=args.prior, cdfs=args.cdfs,
+            quadr_maxiter=args.quadr_maxiter, optim_maxiter=args.optim_maxiter)
 
     # Need to think about how best to fork things here; for instance, might make sense to let the user specify
     # the initial clusters for whatever reason... However, specifying the reference sequences shouldn't make
@@ -187,6 +188,12 @@ def setup_analyze_args(subparsers):
             "cutoff_cdf" or "q_0.05". Note: the value must exist for each sequence and call pattern analyzed.
             As such, you must use the `-Q` flag (for computing all quantiles) if you wish to call based on
             quantiles.""")
+    eval_group.add_argument('--quadr-maxiter', type=int,
+            help="""Set the maxiter option for calls to scipy.integrate.quadrature in betarat. Increasing may
+            improve precision if your logfiles show accuracy warnings for quadrature, but will take more time.
+            Decreasing can reduce computation time for large data sets, at the potential expense of precision.""")
+    eval_group.add_argument('--optim-maxiter', type=int,
+            help="""As with --quadr-maxiter, but for calls to scipy.optimize.brenth.""")
 
     prior_group = analyze_args.add_argument_group('PRIORS')
     prior_group = prior_group.add_mutually_exclusive_group()

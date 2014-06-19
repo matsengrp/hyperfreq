@@ -1,5 +1,6 @@
 from Bio import Align, SeqRecord, Seq
 from Bio.Align import AlignInfo
+import betarat
 from betarat import BetaRat
 from time import time
 
@@ -21,6 +22,7 @@ analysis_defaults = dict(
         quants=[],
         caller="map",
         cdfs=[])
+analysis_defaults.update(betarat.defaults)
 
 
 def apply_analysis_defaults(func):
@@ -157,7 +159,7 @@ class Alignment(Align.MultipleSeqAlignment):
             print "On sequence", seq.name, beta_rat
 
         # Start running stats
-        cutoff_cdf = beta_rat.cdf(kw_args['rpr_cutoff'])
+        cutoff_cdf = beta_rat.cdf(kw_args['rpr_cutoff'], quadr_maxiter=kw_args['quadr_maxiter'])
         hm_pos = cutoff_cdf < kw_args['significance_level']
         br_map = beta_rat.map()
         br_ltmap = beta_rat.lt_map()
@@ -187,13 +189,15 @@ class Alignment(Align.MultipleSeqAlignment):
         for quant in kw_args['quants']:
             key = 'q_{}'.format(quant)
             if hm_pos or not kw_args['pos_quants_only']:
-                hm_data[key] = beta_rat.ppf(quant)
+                hm_data[key] = beta_rat.ppf(quant,
+                        optim_maxiter=kw_args['optim_maxiter'],
+                        quadr_maxiter=kw_args['quadr_maxiter'])
             else:
                 hm_data[key] = None
 
         # Always compute whatever cdfs requested, since they are fairly cheap to process
         for cdf in kw_args['cdfs']:
-            hm_data['cdf_{}'.format(cdf)] = beta_rat.cdf(cdf)
+            hm_data['cdf_{}'.format(cdf)] = beta_rat.cdf(cdf, quadr_maxiter=kw_args['quadr_maxiter'])
 
         if VERBOSE:
             print "Time:", time() - t
