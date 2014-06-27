@@ -3,6 +3,18 @@
 
 ## Version 1.0
 
+### 1.2.0
+
+* Now logging sequence name and mutation counts to warnings logfile to more easily evaluate quadrature convergence behaviour
+
+### 1.1.0
+
+* Addition of a maxiters option which allows you to specificy the maximum number of scipy iterations in the quadrature and optim packages used in betarat
+* Requires a new version of betarat, and has clearer dependencies here
+
+
+### 1.0.0
+
 This major version bump sees the addition of many new features, and significant changes to the way we evaluate hypermutation. These features and changes include
 
 * context based evaluation
