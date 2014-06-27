@@ -53,7 +53,7 @@ def write_analysis(analysis, prefix, patterns_names, quants, cdfs, call_only=Tru
         os.remove(log_filename)
     except OSError:
         pass
-    logging.basicConfig(filename=log_filename)
+    logging.basicConfig(filename=log_filename, level=logging.DEBUG)
     logging.captureWarnings(True)
 
     def handler_builder(pattern_name):

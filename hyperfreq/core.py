@@ -3,7 +3,7 @@ from Bio.Align import AlignInfo
 import betarat
 from betarat import BetaRat
 from time import time
-
+import logging
 import itertools
 import copy
 import re
@@ -157,6 +157,7 @@ class Alignment(Align.MultipleSeqAlignment):
         if VERBOSE:
             t = time()
             print "On sequence", seq.name, beta_rat
+        logging.info(" On sequence: " + seq.name + "; with counts: " + str(counts))
 
         # Start running stats
         cutoff_cdf = beta_rat.cdf(kw_args['rpr_cutoff'], quadr_maxiter=kw_args['quadr_maxiter'])
