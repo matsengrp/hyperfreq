@@ -128,7 +128,7 @@ Now you should be able to download and install hyperfreq
     # Download and unzip the source code
     wget https://github.com/fhcrc/hyperfreq/archive/betarat-refactor.zip -O hyperfreq.zip
     unzip hyperfreq.zip
-    cd hyperfreq-betarat-refactor
+    cd hyperfreq
 
     # Install (sudo may not be necessary, depending on how you set up your python environment)
     sudo python setup.py install
